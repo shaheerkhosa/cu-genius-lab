@@ -13,27 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, ollamaUrl, model } = await req.json();
+    const { messages } = await req.json();
     
-    if (!ollamaUrl) {
-      return new Response(
-        JSON.stringify({ error: 'Ollama URL is required' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    if (!model) {
-      return new Response(
-        JSON.stringify({ error: 'Model name is required' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Hardcoded Ollama configuration
+    const ollamaUrl = 'https://intercarotid-healthiest-mason.ngrok-free.dev';
+    const model = 'llama3.2:latest';
 
     console.log('Connecting to Ollama at:', ollamaUrl);
     console.log('Using model:', model);

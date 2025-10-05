@@ -3,10 +3,8 @@ import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User, Settings } from "lucide-react";
+import { Send, Bot, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 interface Message {
@@ -23,11 +21,6 @@ const Chat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  
-  // Ollama configuration
-  const [ollamaUrl, setOllamaUrl] = useState(localStorage.getItem('ollamaUrl') || 'http://192.168.1.100:11434');
-  const [ollamaModel, setOllamaModel] = useState(localStorage.getItem('ollamaModel') || 'llama2');
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -37,13 +30,6 @@ const Chat = () => {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
-
-  const saveSettings = () => {
-    localStorage.setItem('ollamaUrl', ollamaUrl);
-    localStorage.setItem('ollamaModel', ollamaModel);
-    setShowSettings(false);
-    toast.success("Settings saved!");
-  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -65,8 +51,6 @@ const Chat = () => {
           },
           body: JSON.stringify({
             messages: [...messages, userMessage],
-            ollamaUrl: ollamaUrl,
-            model: ollamaModel,
           }),
         }
       );
@@ -140,63 +124,10 @@ const Chat = () => {
         
         <div className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full p-8">
           {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
-              <p className="text-muted-foreground mt-1">Powered by Ollama</p>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSettings(!showSettings)}
-              className="rounded-xl"
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
+            <p className="text-muted-foreground mt-1">Powered by Ollama</p>
           </div>
-
-          {/* Settings Card */}
-          {showSettings && (
-            <Card className="mb-4 border-2 border-border">
-              <CardHeader>
-                <CardTitle>Ollama Settings</CardTitle>
-                <CardDescription>Configure your Ollama server connection</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="ollamaUrl">Ollama Server URL</Label>
-                  <Input
-                    id="ollamaUrl"
-                    type="text"
-                    placeholder="http://192.168.1.100:11434"
-                    value={ollamaUrl}
-                    onChange={(e) => setOllamaUrl(e.target.value)}
-                    className="rounded-xl mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    e.g., http://192.168.1.100:11434 or http://your-domain.com:11434
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="ollamaModel">Model Name</Label>
-                  <Input
-                    id="ollamaModel"
-                    type="text"
-                    placeholder="llama2"
-                    value={ollamaModel}
-                    onChange={(e) => setOllamaModel(e.target.value)}
-                    className="rounded-xl mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    e.g., llama2, mistral, codellama, etc.
-                  </p>
-                </div>
-                <Button onClick={saveSettings} className="rounded-xl w-full">
-                  Save Settings
-                </Button>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Messages */}
           <ScrollArea className="flex-1 pr-4">
