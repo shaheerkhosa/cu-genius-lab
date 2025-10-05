@@ -1,5 +1,5 @@
 import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +11,8 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const menuItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
@@ -21,6 +23,18 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Error logging out");
+    } else {
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    }
+  };
+
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarContent className="pt-8">
@@ -52,6 +66,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4">
         <Button
+          onClick={handleLogout}
           variant="default"
           className="w-full rounded-xl bg-primary hover:bg-primary/90"
         >

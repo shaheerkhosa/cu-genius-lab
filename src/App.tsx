@@ -9,6 +9,7 @@ import Estimator from "./pages/Estimator";
 import Documents from "./pages/Documents";
 import Study from "./pages/Study";
 import Progress from "./pages/Progress";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Index />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/estimator" element={<Estimator />} />
