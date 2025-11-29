@@ -15,9 +15,9 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
 
-  // Ollama configuration (nginx proxy on local network)
+    // Ollama configuration (nginx proxy on local network)
     const ollamaUrl = "http://192.168.18.112:11434";
-    const model = "llama3.2:latest";
+    const model = "llama2:7b";
 
     console.log("Connecting to Ollama at:", ollamaUrl);
     console.log("Using model:", model);
