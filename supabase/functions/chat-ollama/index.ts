@@ -16,7 +16,7 @@ serve(async (req) => {
     const { messages } = await req.json();
 
     // Hardcoded Ollama configuration
-    const ollamaUrl = "http://192.168.18.112:11434/api/generate";
+    const ollamaUrl = "http://192.168.18.112:11434";
     const model = "llama2:7b";
 
     console.log("Connecting to Ollama at:", ollamaUrl);
@@ -24,7 +24,7 @@ serve(async (req) => {
     console.log("Messages:", messages);
 
     // Call Ollama API
-    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
+    const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -32,7 +32,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: model,
         messages: messages,
-        stream: true,
+        stream: false,
       }),
     });
 
