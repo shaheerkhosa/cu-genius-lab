@@ -17,7 +17,7 @@ serve(async (req) => {
 
     // Hardcoded Ollama configuration
     const ollamaUrl = "http://192.168.18.112:11434/api/generate";
-    const model = "llama3.2:latest";
+    const model = "llama2:7b";
 
     console.log("Connecting to Ollama at:", ollamaUrl);
     console.log("Using model:", model);
