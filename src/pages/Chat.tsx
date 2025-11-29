@@ -70,58 +70,20 @@ const Chat = () => {
         throw new Error(errorData.error || 'Failed to get response from Ollama');
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantMessage = "";
+      const data = await response.json();
+      console.log('Ollama response:', data);
 
-      // Add empty assistant message to start streaming
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.trim() === '') continue;
-            
-            try {
-              const data = JSON.parse(line);
-              
-              if (data.message?.content) {
-                assistantMessage += data.message.content;
-                
-                // Update the last message
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: "assistant",
-                    content: assistantMessage,
-                  };
-                  return newMessages;
-                });
-              }
-
-              if (data.done) {
-                break;
-              }
-            } catch (e) {
-              // Ignore JSON parse errors for incomplete chunks
-              console.log('Parse error (expected during streaming):', e);
-            }
-          }
-        }
+      if (data.message?.content) {
+        setMessages((prev) => [...prev, { 
+          role: "assistant", 
+          content: data.message.content 
+        }]);
+      } else {
+        throw new Error('No response content from Ollama');
       }
     } catch (error) {
       console.error('Error calling Ollama:', error);
       toast.error(error instanceof Error ? error.message : "Failed to connect to Ollama. Please check your settings.");
-      
-      // Remove the empty assistant message if there was an error
-      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
