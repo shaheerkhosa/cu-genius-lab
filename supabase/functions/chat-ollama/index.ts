@@ -13,10 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, ollamaUrl } = await req.json();
 
-    // Ollama configuration (nginx proxy on local network)
-    const ollamaUrl = "http://192.168.18.112:11434";
+    if (!ollamaUrl) {
+      return new Response(JSON.stringify({ error: "Ollama URL is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const model = "llama2:7b";
 
     console.log("Connecting to Ollama at:", ollamaUrl);
