@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { OllamaSettings, useOllamaUrl } from "@/components/OllamaSettings";
+import { OllamaSettings, getOllamaUrl } from "@/components/OllamaSettings";
 
 interface Message {
   role: "user" | "assistant";
@@ -22,7 +22,7 @@ const Chat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { url: ollamaUrl } = useOllamaUrl();
+  const [ollamaUrl, setOllamaUrl] = useState(() => getOllamaUrl());
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +36,9 @@ const Chat = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    if (!ollamaUrl) {
+    // Get fresh URL from localStorage in case it was just updated
+    const currentUrl = getOllamaUrl();
+    if (!currentUrl) {
       toast.error("Please configure your ngrok URL in settings first");
       return;
     }
@@ -58,7 +60,7 @@ const Chat = () => {
           },
           body: JSON.stringify({
             messages: [...messages, userMessage],
-            ollamaUrl: ollamaUrl,
+            ollamaUrl: currentUrl,
           }),
         }
       );
@@ -140,7 +142,7 @@ const Chat = () => {
               </div>
             </div>
             <div className="mt-4">
-              <OllamaSettings />
+              <OllamaSettings onUrlChange={setOllamaUrl} />
             </div>
           </div>
 
