@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { OllamaSettings, useOllamaUrl } from "@/components/OllamaSettings";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,6 +22,7 @@ const Chat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { url: ollamaUrl } = useOllamaUrl();
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -34,13 +36,18 @@ const Chat = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    if (!ollamaUrl) {
+      toast.error("Please configure your ngrok URL in settings first");
+      return;
+    }
+
     const userMessage: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Call the edge function
+      // Call the edge function with the ngrok URL
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`,
         {
@@ -51,6 +58,7 @@ const Chat = () => {
           },
           body: JSON.stringify({
             messages: [...messages, userMessage],
+            ollamaUrl: ollamaUrl,
           }),
         }
       );
@@ -125,8 +133,15 @@ const Chat = () => {
         <div className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full p-8">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
-            <p className="text-muted-foreground mt-1">Powered by Ollama</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
+                <p className="text-muted-foreground mt-1">Powered by Ollama</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <OllamaSettings />
+            </div>
           </div>
 
           {/* Messages */}
