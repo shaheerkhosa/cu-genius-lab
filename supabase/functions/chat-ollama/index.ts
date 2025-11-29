@@ -28,7 +28,18 @@ serve(async (req) => {
     console.log("Using model:", model);
     console.log("Messages:", messages);
 
-    // Call Ollama API
+    // Convert messages to a single prompt for /api/generate
+    const prompt = messages
+      .map((msg: { role: string; content: string }) => {
+        if (msg.role === "user") return `[INST] ${msg.content} [/INST]`;
+        if (msg.role === "assistant") return msg.content;
+        return msg.content;
+      })
+      .join("\n");
+
+    console.log("Formatted prompt:", prompt);
+
+    // Call Ollama API using /api/generate endpoint
     const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
       headers: {
@@ -36,7 +47,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: model,
-        messages: messages,
+        prompt: prompt,
         stream: false,
       }),
     });
@@ -50,16 +61,17 @@ serve(async (req) => {
       });
     }
 
-    // Stream the response from Ollama
-    const stream = ollamaResponse.body;
+    const data = await ollamaResponse.json();
+    console.log("Ollama response:", data);
 
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
+    // Return the response in a format the frontend expects
+    return new Response(JSON.stringify({
+      message: {
+        content: data.response || ""
       },
+      done: data.done
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error in chat-ollama function:", error);
