@@ -10,36 +10,34 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 
-const STORAGE_KEY = "ollama_ngrok_url";
+export const STORAGE_KEY = "ollama_ngrok_url";
 
-export const useOllamaUrl = () => {
-  const [url, setUrl] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) || "";
-  });
+export const getOllamaUrl = () => localStorage.getItem(STORAGE_KEY) || "";
 
-  const saveUrl = (newUrl: string) => {
-    localStorage.setItem(STORAGE_KEY, newUrl);
-    setUrl(newUrl);
-  };
+interface OllamaSettingsProps {
+  onUrlChange?: (url: string) => void;
+}
 
-  return { url, saveUrl };
-};
-
-export const OllamaSettings = () => {
+export const OllamaSettings = ({ onUrlChange }: OllamaSettingsProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputUrl, setInputUrl] = useState("");
-  const { url, saveUrl } = useOllamaUrl();
+  const [savedUrl, setSavedUrl] = useState("");
 
   useEffect(() => {
-    setInputUrl(url);
-  }, [url]);
+    const stored = getOllamaUrl();
+    setInputUrl(stored);
+    setSavedUrl(stored);
+  }, []);
 
   const handleSave = () => {
     if (!inputUrl.trim()) {
       toast.error("Please enter a valid ngrok URL");
       return;
     }
-    saveUrl(inputUrl.trim());
+    const trimmed = inputUrl.trim();
+    localStorage.setItem(STORAGE_KEY, trimmed);
+    setSavedUrl(trimmed);
+    onUrlChange?.(trimmed);
     toast.success("Ollama URL saved!");
   };
 
@@ -83,9 +81,9 @@ export const OllamaSettings = () => {
               Enter your ngrok forwarding URL (e.g., https://abc123.ngrok-free.app)
             </p>
           </div>
-          {url && (
+          {savedUrl && (
             <p className="text-xs text-green-600 dark:text-green-400">
-              ✓ Currently using: {url}
+              ✓ Currently using: {savedUrl}
             </p>
           )}
         </div>
