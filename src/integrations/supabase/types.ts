@@ -44,6 +44,66 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          flagged_at: string | null
+          flagged_reason: string | null
+          id: string
+          mime_type: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string | null
+          user_id: string
+          verification_details: Json | null
+          verification_score: number | null
+          verification_status: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          flagged_at?: string | null
+          flagged_reason?: string | null
+          id?: string
+          mime_type?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string | null
+          user_id: string
+          verification_details?: Json | null
+          verification_score?: number | null
+          verification_status?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          flagged_at?: string | null
+          flagged_reason?: string | null
+          id?: string
+          mime_type?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verification_details?: Json | null
+          verification_score?: number | null
+          verification_status?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -76,6 +136,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          id: string
+          message: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          message?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -94,6 +195,27 @@ export type Database = {
           email?: string
           id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
