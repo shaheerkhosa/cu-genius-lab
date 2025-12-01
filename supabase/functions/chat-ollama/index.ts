@@ -66,40 +66,43 @@ Summary:`;
       });
     }
 
-    // Normal chat - use summary + last 2 messages only
+    // Normal chat - use /api/chat for proper conversation context
     console.log("Connecting to Ollama at:", ollamaUrl);
     console.log("Using model:", model);
     console.log("Summary:", summary || "None");
     console.log("Messages count:", messages.length);
 
-    // Build context-efficient prompt
-    let prompt = "";
+    // Build structured messages for chat endpoint
+    const chatMessages: { role: string; content: string }[] = [];
 
-    // Add summary as context if available
+    // Add summary as system context if available
     if (summary) {
-      prompt += `[Previous conversation context: ${summary}]\n\n`;
+      chatMessages.push({
+        role: "system",
+        content: `Previous conversation context: ${summary}`,
+      });
     }
 
     // Only use last 2 messages (1 exchange) for speed
     const recentMessages = messages.slice(-2);
     console.log("Using last", recentMessages.length, "messages");
 
-    prompt += recentMessages
-      .map((msg: Message) => {
-        if (msg.role === "user") return `[INST] ${msg.content} [/INST]`;
-        if (msg.role === "assistant") return msg.content;
-        return msg.content;
-      })
-      .join("\n");
+    // Add recent messages with proper roles
+    recentMessages.forEach((msg: Message) => {
+      chatMessages.push({
+        role: msg.role,
+        content: msg.content,
+      });
+    });
 
-    console.log("Final prompt length:", prompt.length, "chars");
+    console.log("Chat messages count:", chatMessages.length);
 
-    const ollamaResponse = await fetch(`${ollamaUrl}/api/generate`, {
+    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: model,
-        prompt: prompt,
+        messages: chatMessages,
         stream: false,
       }),
     });
