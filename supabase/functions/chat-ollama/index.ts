@@ -117,11 +117,13 @@ Summary:`;
     }
 
     const data = await ollamaResponse.json();
-    console.log("Ollama response received, length:", data.response?.length || 0);
+    // /api/chat returns { message: { role, content }, done }
+    const responseContent = data.message?.content || "";
+    console.log("Ollama response received, length:", responseContent.length);
 
     return new Response(
       JSON.stringify({
-        message: { content: data.response || "" },
+        message: { content: responseContent },
         done: data.done,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
