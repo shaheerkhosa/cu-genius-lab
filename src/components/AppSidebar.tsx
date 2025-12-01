@@ -45,7 +45,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar-background" collapsible="icon">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar-background/50 backdrop-blur-md" collapsible="icon">
       <SidebarContent className="pt-16">
         <SidebarGroup>
           <SidebarGroupContent>
