@@ -170,8 +170,8 @@ export function getSubjectColor(performance: number): string {
 }
 
 export function getPerformanceBorderColor(performance: number): string {
-  if (performance >= 85) return 'border-green-400';
-  if (performance >= 70) return 'border-blue-400';
-  if (performance >= 60) return 'border-yellow-400';
-  return 'border-red-400';
+  if (performance >= 85) return 'border-l-green-400';
+  if (performance >= 70) return 'border-l-blue-400';
+  if (performance >= 60) return 'border-l-yellow-400';
+  return 'border-l-red-400';
 }
