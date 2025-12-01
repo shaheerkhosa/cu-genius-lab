@@ -7,24 +7,27 @@ import { Label } from '@/components/ui/label';
 import { SubjectCard } from '@/components/SubjectCard';
 import { SubjectDetailModal } from '@/components/SubjectDetailModal';
 import { StudyGuideDisplay } from '@/components/StudyGuideDisplay';
+import { OllamaSettings, getOllamaUrl } from '@/components/OllamaSettings';
 import { sampleStudent } from '@/data/sampleStudentData';
-import { analyzeStudentPerformance, SubjectPerformance, getSubjectColor } from '@/lib/performanceAnalyzer';
+import { getCurrentSemesterPerformance, SubjectPerformance, getSubjectColor } from '@/lib/performanceAnalyzer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { gsap } from 'gsap';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 const Study = () => {
-  const [analysis, setAnalysis] = useState(() => analyzeStudentPerformance(sampleStudent));
+  const [currentSubjects] = useState(() => getCurrentSemesterPerformance(sampleStudent));
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<SubjectPerformance | null>(null);
   const [focusArea, setFocusArea] = useState('');
   const [generating, setGenerating] = useState(false);
   const [studyGuide, setStudyGuide] = useState<string | null>(null);
+  const [ollamaUrl, setOllamaUrl] = useState(getOllamaUrl());
 
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     // Page entrance animations
@@ -33,22 +36,38 @@ const Study = () => {
     tl.from(headerRef.current, {
       opacity: 0,
       y: -30,
+      scale: 0.95,
       duration: 0.8,
       ease: 'power3.out',
     })
       .from(cardsRef.current, {
         opacity: 0,
-        y: 40,
-        duration: 0.8,
-        ease: 'power3.out',
-      }, '-=0.5')
-      .from(buttonRef.current, {
-        opacity: 0,
-        scale: 0.9,
+        y: 20,
         duration: 0.6,
-        ease: 'back.out(1.7)',
-      }, '-=0.4');
-  }, []);
+        ease: 'power3.out',
+      }, '-=0.5');
+
+    // Stagger card animations
+    cardRefs.current.forEach((card, i) => {
+      if (card) {
+        gsap.from(card, {
+          opacity: 0,
+          y: 30,
+          duration: 0.5,
+          delay: 0.7 + i * 0.1,
+          ease: 'power2.out',
+        });
+      }
+    });
+
+    gsap.from(buttonRef.current, {
+      opacity: 0,
+      scale: 0.9,
+      duration: 0.6,
+      delay: 0.9 + currentSubjects.length * 0.1,
+      ease: 'back.out(1.7)',
+    });
+  }, [currentSubjects.length]);
 
   const handleGenerateGuide = async () => {
     if (selectedSubjects.length === 0) {
@@ -60,12 +79,20 @@ const Study = () => {
       return;
     }
 
+    if (!ollamaUrl) {
+      toast({
+        title: 'Ollama Not Configured',
+        description: 'Please set your Ollama ngrok URL in the settings above',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setGenerating(true);
     setStudyGuide(null);
 
     try {
-      const selectedSubjectData = analysis.weakSubjects
-        .concat(analysis.strongSubjects)
+      const selectedSubjectData = currentSubjects
         .filter(s => selectedSubjects.includes(s.code))
         .map(s => ({
           code: s.code,
@@ -80,6 +107,7 @@ const Study = () => {
         body: {
           subjects: selectedSubjectData,
           focusArea: focusArea || undefined,
+          ollamaUrl,
         },
       });
 
@@ -117,15 +145,12 @@ const Study = () => {
     );
   };
 
-  const allSubjects = [...analysis.weakSubjects, ...analysis.strongSubjects]
-    .sort((a, b) => a.overallPerformance - b.overallPerformance);
-
   return (
     <Layout>
       <div className="relative min-h-screen p-8">
         <DecorativeBackground />
 
-        <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+        <div className="relative z-10 max-w-5xl mx-auto space-y-8">
           {/* Header */}
           <div ref={headerRef} className="text-center space-y-2">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-2">
@@ -136,25 +161,28 @@ const Study = () => {
               Study Guide Generator
             </h1>
             <p className="text-muted-foreground text-lg">
-              Select subjects to create a personalized study guide focused on your weak areas
+              Generate personalized study guides for your current semester courses
             </p>
+          </div>
+
+          {/* Ollama Settings */}
+          <div className="max-w-2xl mx-auto">
+            <OllamaSettings onUrlChange={setOllamaUrl} />
           </div>
 
           {/* Subject Selection */}
           <div ref={cardsRef} className="space-y-6">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-4">
-                Select subjects • {selectedSubjects.length} selected
+                Current Semester • {selectedSubjects.length} of {currentSubjects.length} selected
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allSubjects.map((subject, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+              {currentSubjects.map((subject, index) => (
                 <div
                   key={subject.code}
-                  style={{
-                    animationDelay: `${index * 0.1}s`,
-                  }}
+                  ref={(el) => (cardRefs.current[index] = el)}
                 >
                   <SubjectCard
                     subject={subject}
