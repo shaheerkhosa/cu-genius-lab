@@ -26,7 +26,7 @@ export function ThemeToggle({ collapsed = false }: ThemeToggleProps) {
     <Button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       variant="outline"
-      className={`w-full rounded-xl bg-secondary hover:bg-secondary/80 border-2 border-border h-12 ${
+      className={`w-full rounded-xl bg-muted hover:bg-muted/80 border-2 border-border text-foreground hover:text-foreground h-12 ${
         collapsed ? "px-0 justify-center" : ""
       }`}
     >
