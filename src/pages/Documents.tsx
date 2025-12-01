@@ -15,25 +15,31 @@ const Documents = () => {
     // Page entrance animations
     const tl = gsap.timeline();
     
-    tl.from(headerRef.current, {
-      opacity: 0,
-      y: -20,
-      duration: 0.6,
-      ease: 'power3.out',
-    })
-    .from(uploaderRef.current, {
-      opacity: 0,
-      y: 30,
-      scale: 0.95,
-      duration: 0.6,
-      ease: 'power3.out',
-    }, '-=0.3')
-    .from(historyRef.current, {
-      opacity: 0,
-      y: 20,
-      duration: 0.6,
-      ease: 'power3.out',
-    }, '-=0.3');
+    if (headerRef.current) {
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+      );
+    }
+    
+    if (uploaderRef.current) {
+      tl.fromTo(
+        uploaderRef.current,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+        '-=0.3'
+      );
+    }
+    
+    if (historyRef.current) {
+      tl.fromTo(
+        historyRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+        '-=0.2'
+      );
+    }
   }, []);
 
   const handleUploadSuccess = () => {
