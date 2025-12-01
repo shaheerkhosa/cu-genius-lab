@@ -238,10 +238,10 @@ const Chat = () => {
       
       <div 
         ref={containerRef}
-        className="relative z-10 min-h-screen flex flex-col max-w-4xl mx-auto w-full p-8"
+        className="relative z-10 h-screen flex flex-col max-w-4xl mx-auto w-full"
       >
         {/* Header */}
-        <div ref={headerRef} className="mb-6 flex-shrink-0">
+        <div ref={headerRef} className="flex-shrink-0 p-8 pb-0">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
@@ -261,13 +261,13 @@ const Chat = () => {
         </div>
 
         {/* Content */}
-        <div ref={contentRef} className="flex-1 flex flex-col min-h-0">
+        <div ref={contentRef} className="flex-1 flex flex-col min-h-0 px-8">
           {showLanding ? (
             <ChatLanding onSubmit={handleSendMessage} isLoading={isSending} />
           ) : (
             <>
               {/* Messages - scrollable area */}
-              <div className="flex-1 overflow-y-auto pr-2 mb-6">
+              <div className="flex-1 overflow-y-auto pr-2 py-6">
                 <div className="space-y-4">
                   {messages.map((message, index) => (
                     <div
@@ -300,7 +300,7 @@ const Chat = () => {
               </div>
 
               {/* Input - fixed at bottom */}
-              <div className="flex-shrink-0 flex gap-2">
+              <div className="flex-shrink-0 flex gap-2 pb-8 pt-4">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
