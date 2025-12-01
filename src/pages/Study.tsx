@@ -28,59 +28,62 @@ const Study = () => {
   const cardsRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
+    // Reset animation flag
+    hasAnimated.current = false;
+    
     // Page entrance animations
     const tl = gsap.timeline();
 
-    if (headerRef.current) {
+    if (headerRef.current && cardsRef.current) {
       tl.fromTo(
         headerRef.current,
         { opacity: 0, y: -30 },
         { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
-      );
-    }
-
-    if (cardsRef.current) {
-      tl.fromTo(
+      )
+      .fromTo(
         cardsRef.current,
         { opacity: 0, y: 20 },
         { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
         '-=0.3'
       );
-    }
 
-    // Stagger card animations
-    cardRefs.current.forEach((card, i) => {
-      if (card) {
+      // Stagger card animations
+      cardRefs.current.forEach((card, i) => {
+        if (card) {
+          gsap.fromTo(
+            card,
+            { opacity: 0, y: 30 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.4,
+              delay: 0.5 + i * 0.1,
+              ease: 'power2.out',
+            }
+          );
+        }
+      });
+
+      if (buttonRef.current) {
         gsap.fromTo(
-          card,
-          { opacity: 0, y: 30 },
+          buttonRef.current,
+          { opacity: 0, scale: 0.9 },
           {
             opacity: 1,
-            y: 0,
+            scale: 1,
             duration: 0.4,
-            delay: 0.5 + i * 0.1,
-            ease: 'power2.out',
+            delay: 0.7 + currentSubjects.length * 0.1,
+            ease: 'back.out(1.7)',
           }
         );
       }
-    });
-
-    if (buttonRef.current) {
-      gsap.fromTo(
-        buttonRef.current,
-        { opacity: 0, scale: 0.9 },
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 0.4,
-          delay: 0.7 + currentSubjects.length * 0.1,
-          ease: 'back.out(1.7)',
-        }
-      );
+      
+      hasAnimated.current = true;
     }
-  }, [currentSubjects.length]);
+  });
 
   const handleGenerateGuide = async () => {
     if (selectedSubjects.length === 0) {
