@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, PenTool, Send } from "lucide-react";
 
@@ -21,6 +22,36 @@ const writePrompts = [
 
 export function ChatLanding({ onSubmit, isLoading }: ChatLandingProps) {
   const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const promptsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current && headerRef.current && promptsRef.current && inputRef.current) {
+      const tl = gsap.timeline();
+      
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }
+      );
+      
+      tl.fromTo(
+        promptsRef.current.children,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.1, ease: "power2.out" },
+        "-=0.3"
+      );
+      
+      tl.fromTo(
+        inputRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        "-=0.2"
+      );
+    }
+  }, []);
 
   const handleSubmit = (message: string) => {
     if (message.trim() && !isLoading) {
@@ -29,16 +60,16 @@ export function ChatLanding({ onSubmit, isLoading }: ChatLandingProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8">
+    <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center py-8">
       <div className="w-full max-w-4xl space-y-12">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div ref={headerRef} className="text-center space-y-4">
           <p className="text-lg text-muted-foreground">Welcome To</p>
           <h1 className="text-5xl font-bold text-primary">CUIntelligence</h1>
         </div>
 
         {/* Prompt Sections */}
-        <div className="grid md:grid-cols-2 gap-8 mt-12">
+        <div ref={promptsRef} className="grid md:grid-cols-2 gap-8 mt-12">
           {/* Explain Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-2 mb-6">
@@ -50,7 +81,7 @@ export function ChatLanding({ onSubmit, isLoading }: ChatLandingProps) {
                 <Button
                   key={index}
                   variant="secondary"
-                  className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal"
+                  className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal transition-all duration-200 hover:scale-[1.02]"
                   onClick={() => handleSubmit(prompt)}
                   disabled={isLoading}
                 >
@@ -71,7 +102,7 @@ export function ChatLanding({ onSubmit, isLoading }: ChatLandingProps) {
                 <Button
                   key={index}
                   variant="secondary"
-                  className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal"
+                  className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal transition-all duration-200 hover:scale-[1.02]"
                   onClick={() => handleSubmit(prompt)}
                   disabled={isLoading}
                 >
@@ -83,7 +114,7 @@ export function ChatLanding({ onSubmit, isLoading }: ChatLandingProps) {
         </div>
 
         {/* Input Bar */}
-        <div className="mt-12">
+        <div ref={inputRef} className="mt-12">
           <form
             onSubmit={(e) => {
               e.preventDefault();

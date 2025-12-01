@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { OllamaSettings, getOllamaUrl } from "@/components/OllamaSettings";
 import { ChatHistory } from "@/components/ChatHistory";
@@ -26,7 +26,10 @@ const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState(() => getOllamaUrl());
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const {
     conversations,
@@ -63,12 +66,46 @@ const Chat = () => {
     }
   }, [authLoading, user, navigate]);
 
+  // GSAP entrance animation
+  useEffect(() => {
+    if (!authLoading && user && headerRef.current && contentRef.current) {
+      const tl = gsap.timeline();
+      
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
+      );
+      
+      tl.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        "-=0.3"
+      );
+    }
+  }, [authLoading, user, currentConversationId]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Animate new messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = document.querySelector(`[data-message-index="${messages.length - 1}"]`);
+      if (lastMessage) {
+        gsap.fromTo(
+          lastMessage,
+          { opacity: 0, x: messages[messages.length - 1].role === "user" ? 20 : -20 },
+          { opacity: 1, x: 0, duration: 0.3, ease: "power2.out" }
+        );
+      }
+    }
+  }, [messages.length]);
 
   // Handle initial message from landing page
   useEffect(() => {
@@ -151,7 +188,7 @@ const Chat = () => {
   if (authLoading) {
     return (
       <Layout>
-        <div className="h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </Layout>
@@ -167,40 +204,45 @@ const Chat = () => {
 
   return (
     <Layout>
-      <div className="relative h-screen flex flex-col">
-        <DecorativeBackground />
-
-        <div className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full p-8">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
-                <p className="text-muted-foreground mt-1">Powered by Ollama</p>
-              </div>
-              <ChatHistory
-                conversations={conversations}
-                currentConversationId={currentConversationId}
-                onSelect={selectConversation}
-                onNewChat={startNewChat}
-                onDelete={deleteConversation}
-              />
+      <DecorativeBackground />
+      
+      <div 
+        ref={containerRef}
+        className="relative z-10 min-h-screen flex flex-col max-w-4xl mx-auto w-full p-8"
+      >
+        {/* Header */}
+        <div ref={headerRef} className="mb-6 flex-shrink-0">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
+              <p className="text-muted-foreground mt-1">Powered by Ollama</p>
             </div>
-            <div className="mt-4">
-              <OllamaSettings onUrlChange={setOllamaUrl} />
-            </div>
+            <ChatHistory
+              conversations={conversations}
+              currentConversationId={currentConversationId}
+              onSelect={selectConversation}
+              onNewChat={startNewChat}
+              onDelete={deleteConversation}
+            />
           </div>
+          <div className="mt-4">
+            <OllamaSettings onUrlChange={setOllamaUrl} />
+          </div>
+        </div>
 
+        {/* Content */}
+        <div ref={contentRef} className="flex-1 flex flex-col min-h-0">
           {showLanding ? (
             <ChatLanding onSubmit={handleSendMessage} isLoading={isSending} />
           ) : (
             <>
-              {/* Messages */}
-              <ScrollArea className="flex-1 pr-4">
+              {/* Messages - scrollable area */}
+              <div className="flex-1 overflow-y-auto pr-2 mb-6">
                 <div className="space-y-4">
                   {messages.map((message, index) => (
                     <div
                       key={message.id || index}
+                      data-message-index={index}
                       className={`flex gap-3 ${
                         message.role === "user" ? "justify-end" : "justify-start"
                       }`}
@@ -223,12 +265,12 @@ const Chat = () => {
                       </div>
                     </div>
                   )}
-                  <div ref={scrollRef} />
+                  <div ref={messagesEndRef} />
                 </div>
-              </ScrollArea>
+              </div>
 
-              {/* Input */}
-              <div className="mt-6 flex gap-2">
+              {/* Input - fixed at bottom */}
+              <div className="flex-shrink-0 flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

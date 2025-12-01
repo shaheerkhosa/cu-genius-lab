@@ -13,7 +13,7 @@ export const Layout = ({ children }: LayoutProps) => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
-          <main className="flex-1 relative overflow-hidden">
+          <main className="flex-1 relative overflow-y-auto">
             {children}
           </main>
         </div>
