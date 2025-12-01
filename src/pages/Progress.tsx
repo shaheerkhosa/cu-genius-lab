@@ -164,9 +164,9 @@ const Progress = () => {
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={performanceTrend}>
+                <CardContent className="pb-6">
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={performanceTrend} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis 
                         dataKey="week" 
@@ -184,7 +184,7 @@ const Progress = () => {
                           borderRadius: '8px'
                         }}
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ paddingTop: '10px' }} />
                       <Line 
                         type="monotone" 
                         dataKey="currentSemester" 
