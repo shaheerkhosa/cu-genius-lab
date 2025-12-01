@@ -31,7 +31,7 @@ serve(async (req) => {
     // If we're generating a summary, use a special prompt
     if (generateSummary) {
       console.log("Generating summary for conversation...");
-      
+
       const summaryPrompt = `Summarize this conversation in 2-3 short sentences, capturing the key topics and any important facts mentioned. Be concise.
 
 Conversation:
@@ -45,7 +45,7 @@ Summary:`;
         body: JSON.stringify({
           model: model,
           prompt: summaryPrompt,
-          stream: false,
+          stream: true,
         }),
       });
 
@@ -61,10 +61,9 @@ Summary:`;
       const summaryData = await summaryResponse.json();
       console.log("Generated summary:", summaryData.response);
 
-      return new Response(
-        JSON.stringify({ summary: summaryData.response || "" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ summary: summaryData.response || "" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Normal chat - use summary + last 2 messages only
@@ -75,16 +74,16 @@ Summary:`;
 
     // Build context-efficient prompt
     let prompt = "";
-    
+
     // Add summary as context if available
     if (summary) {
       prompt += `[Previous conversation context: ${summary}]\n\n`;
     }
-    
+
     // Only use last 2 messages (1 exchange) for speed
     const recentMessages = messages.slice(-2);
     console.log("Using last", recentMessages.length, "messages");
-    
+
     prompt += recentMessages
       .map((msg: Message) => {
         if (msg.role === "user") return `[INST] ${msg.content} [/INST]`;
@@ -122,7 +121,7 @@ Summary:`;
         message: { content: data.response || "" },
         done: data.done,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error in chat-ollama function:", error);
