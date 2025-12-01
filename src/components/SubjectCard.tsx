@@ -21,7 +21,7 @@ export function SubjectCard({ subject, selected, onSelect, onMoreInfo }: Subject
   return (
     <Card 
       className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer bg-card/50 backdrop-blur border-l-4 ${borderColor} ${
-        selected ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : 'border-border/50'
+        selected ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : ''
       }`}
       onClick={() => onSelect(!selected)}
     >
