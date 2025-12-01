@@ -22,7 +22,7 @@ serve(async (req) => {
       });
     }
 
-    const model = "llama2:7b";
+    const model = "llama3.2:latest";
 
     console.log("Connecting to Ollama at:", ollamaUrl);
     console.log("Using model:", model);
@@ -65,14 +65,17 @@ serve(async (req) => {
     console.log("Ollama response:", data);
 
     // Return the response in a format the frontend expects
-    return new Response(JSON.stringify({
-      message: {
-        content: data.response || ""
+    return new Response(
+      JSON.stringify({
+        message: {
+          content: data.response || "",
+        },
+        done: data.done,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
-      done: data.done
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    );
   } catch (error) {
     console.error("Error in chat-ollama function:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
