@@ -39,13 +39,22 @@ ${messages.map((m: Message) => `${m.role}: ${m.content}`).join("\n")}
 
 Summary:`;
 
-      const summaryResponse = await fetch(`${ollamaUrl}/api/generate`, {
+      const summaryResponse = await fetch(`${ollamaUrl}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: model,
-          prompt: summaryPrompt,
-          stream: true,
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that summarizes conversations concisely.",
+            },
+            {
+              role: "user",
+              content: `Summarize this conversation in 2-3 short sentences, capturing the key topics and any important facts mentioned. Be concise.\n\nConversation:\n${messages.map((m: Message) => `${m.role}: ${m.content}`).join("\n")}`,
+            },
+          ],
+          stream: false,
         }),
       });
 
@@ -59,9 +68,10 @@ Summary:`;
       }
 
       const summaryData = await summaryResponse.json();
-      console.log("Generated summary:", summaryData.response);
+      const summaryContent = summaryData.message?.content || "";
+      console.log("Generated summary:", summaryContent);
 
-      return new Response(JSON.stringify({ summary: summaryData.response || "" }), {
+      return new Response(JSON.stringify({ summary: summaryContent }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
