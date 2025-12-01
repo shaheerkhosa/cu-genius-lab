@@ -91,7 +91,7 @@ Keep the tone motivating and supportive. Include encouragement and realistic exp
 
 Generate a study guide that is 800-1200 words, highly specific to the student's actual weak points.`;
 
-    const model = 'llama3.2:latest';
+    const model = 'llama3.2:1b';
 
     console.log('Generating study guide for subjects:', subjects.map((s: SubjectData) => s.code).join(', '));
     console.log('Using Ollama URL:', ollamaUrl);
