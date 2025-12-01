@@ -95,23 +95,46 @@ Generate a study guide that is 1500-2500 words, highly specific to the student's
 
     const model = 'llama3.2:latest';
 
-    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert academic study guide creator for university students. Always format responses in clear markdown with proper headings (##, ###), bullet points, numbered lists, and bold text for emphasis. Create comprehensive, actionable study guides.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        stream: false,
-      }),
-    });
+    // Add timeout to prevent edge function from hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+    let ollamaResponse;
+    try {
+      ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are an expert academic study guide creator for university students. Always format responses in clear markdown with proper headings (##, ###), bullet points, numbered lists, and bold text for emphasis. Create comprehensive, actionable study guides.'
+            },
+            { role: 'user', content: prompt }
+          ],
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Ollama request timed out');
+        return new Response(
+          JSON.stringify({ error: 'Request to Ollama timed out. Please check your ngrok URL and ensure Ollama is running and responding.' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.error('Failed to connect to Ollama:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to connect to Ollama. Please verify your ngrok URL is correct and Ollama is running.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!ollamaResponse.ok) {
       const errorText = await ollamaResponse.text();
