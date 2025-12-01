@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import gsap from "gsap";
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,40 @@ import { useNavigate } from "react-router-dom";
 const Index = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  
+  const headerRef = useRef<HTMLDivElement>(null);
+  const promptsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tl = gsap.timeline();
+    
+    if (headerRef.current) {
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -40 },
+        { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }
+      );
+    }
+    
+    if (promptsRef.current) {
+      tl.fromTo(
+        promptsRef.current.children,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: "power2.out" },
+        "-=0.4"
+      );
+    }
+    
+    if (inputRef.current) {
+      tl.fromTo(
+        inputRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        "-=0.2"
+      );
+    }
+  }, []);
 
   const handleSubmit = (message: string) => {
     if (message.trim()) {
@@ -29,18 +64,18 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="relative min-h-screen flex flex-col items-center justify-center p-8">
-        <DecorativeBackground />
-        
-        <div className="relative z-10 w-full max-w-5xl space-y-12">
+      <DecorativeBackground />
+      
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-8">
+        <div className="w-full max-w-5xl space-y-12">
           {/* Header */}
-          <div className="text-center space-y-4">
+          <div ref={headerRef} className="text-center space-y-4">
             <p className="text-lg text-muted-foreground">Welcome To</p>
             <h1 className="text-6xl font-bold text-primary">CUIntelligence</h1>
           </div>
 
           {/* Prompt Sections */}
-          <div className="grid md:grid-cols-2 gap-8 mt-16">
+          <div ref={promptsRef} className="grid md:grid-cols-2 gap-8 mt-16">
             {/* Explain Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-2 mb-6">
@@ -52,7 +87,7 @@ const Index = () => {
                   <Button
                     key={index}
                     variant="secondary"
-                    className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal"
+                    className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal transition-all duration-200 hover:scale-[1.02]"
                     onClick={() => handleSubmit(prompt)}
                   >
                     {prompt}
@@ -72,7 +107,7 @@ const Index = () => {
                   <Button
                     key={index}
                     variant="secondary"
-                    className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal"
+                    className="w-full justify-start text-left h-auto py-4 px-6 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground font-normal transition-all duration-200 hover:scale-[1.02]"
                     onClick={() => handleSubmit(prompt)}
                   >
                     {prompt}
@@ -83,7 +118,7 @@ const Index = () => {
           </div>
 
           {/* Input Bar */}
-          <div className="mt-12">
+          <div ref={inputRef} className="mt-12">
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(query); }} className="relative flex gap-2">
               <div className="relative flex-1">
                 <input
