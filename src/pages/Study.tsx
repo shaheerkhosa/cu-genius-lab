@@ -33,40 +33,53 @@ const Study = () => {
     // Page entrance animations
     const tl = gsap.timeline();
 
-    tl.from(headerRef.current, {
-      opacity: 0,
-      y: -30,
-      scale: 0.95,
-      duration: 0.8,
-      ease: 'power3.out',
-    })
-      .from(cardsRef.current, {
-        opacity: 0,
-        y: 20,
-        duration: 0.6,
-        ease: 'power3.out',
-      }, '-=0.5');
+    if (headerRef.current) {
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+      );
+    }
+
+    if (cardsRef.current) {
+      tl.fromTo(
+        cardsRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+        '-=0.3'
+      );
+    }
 
     // Stagger card animations
     cardRefs.current.forEach((card, i) => {
       if (card) {
-        gsap.from(card, {
-          opacity: 0,
-          y: 30,
-          duration: 0.5,
-          delay: 0.7 + i * 0.1,
-          ease: 'power2.out',
-        });
+        gsap.fromTo(
+          card,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.4,
+            delay: 0.5 + i * 0.1,
+            ease: 'power2.out',
+          }
+        );
       }
     });
 
-    gsap.from(buttonRef.current, {
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.6,
-      delay: 0.9 + currentSubjects.length * 0.1,
-      ease: 'back.out(1.7)',
-    });
+    if (buttonRef.current) {
+      gsap.fromTo(
+        buttonRef.current,
+        { opacity: 0, scale: 0.9 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.4,
+          delay: 0.7 + currentSubjects.length * 0.1,
+          ease: 'back.out(1.7)',
+        }
+      );
+    }
   }, [currentSubjects.length]);
 
   const handleGenerateGuide = async () => {
