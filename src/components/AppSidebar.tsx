@@ -1,4 +1,4 @@
-import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut } from "lucide-react";
+import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const menuItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
@@ -22,8 +23,13 @@ const menuItems = [
   { title: "Progress", url: "/progress", icon: TrendingUp },
 ];
 
+const adminMenuItems = [
+  { title: "Admin Queue", url: "/admin/documents", icon: Shield, adminOnly: true },
+];
+
 export function AppSidebar() {
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -42,6 +48,27 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
               {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        }`
+                      }
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              
+              {/* Admin-only menu items */}
+              {isAdmin && adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
