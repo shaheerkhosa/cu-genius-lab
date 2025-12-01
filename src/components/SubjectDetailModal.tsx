@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { SubjectPerformance } from '@/lib/performanceAnalyzer';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -27,19 +28,22 @@ export function SubjectDetailModal({ subject, open, onClose }: SubjectDetailModa
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">{subject.name}</DialogTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{subject.code}</span>
-            <span>•</span>
-            <span>{subject.semester}</span>
-            <span>•</span>
-            <span>Grade: {subject.grade}</span>
-          </div>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] p-0">
+        <div className="p-6 pb-4">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{subject.name}</DialogTitle>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{subject.code}</span>
+              <span>•</span>
+              <span>{subject.semester}</span>
+              <span>•</span>
+              <span>Grade: {subject.grade}</span>
+            </div>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-6 mt-4">
+        <ScrollArea className="max-h-[calc(85vh-8rem)] px-6 pb-6">
+          <div className="space-y-6">
           {/* Overall Performance */}
           <div className="p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center justify-between mb-3">
@@ -120,6 +124,7 @@ export function SubjectDetailModal({ subject, open, onClose }: SubjectDetailModa
             </ul>
           </div>
         </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
