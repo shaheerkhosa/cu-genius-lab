@@ -89,18 +89,23 @@ Format the guide with:
 
 Keep the tone motivating and supportive. Include encouragement and realistic expectations.
 
-Generate a study guide that is 1500-2500 words, highly specific to the student's actual weak points.`;
-
-    console.log('Generating study guide for subjects:', subjects.map((s: SubjectData) => s.code).join(', '));
+Generate a study guide that is 800-1200 words, highly specific to the student's actual weak points.`;
 
     const model = 'llama3.2:latest';
 
-    // Add timeout to prevent edge function from hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    console.log('Generating study guide for subjects:', subjects.map((s: SubjectData) => s.code).join(', '));
+    console.log('Using Ollama URL:', ollamaUrl);
+    console.log('Using model:', model);
 
+    // Add timeout to prevent edge function from hanging
+    // Study guide generation can take time with Ollama, so allow 2 minutes
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+
+    const startTime = Date.now();
     let ollamaResponse;
     try {
+      console.log('Sending request to Ollama...');
       ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
         method: 'POST',
         headers: {
@@ -120,6 +125,8 @@ Generate a study guide that is 1500-2500 words, highly specific to the student's
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      const elapsedTime = Date.now() - startTime;
+      console.log(`Ollama request completed in ${elapsedTime}ms`);
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
