@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Menu } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,10 +11,15 @@ interface LayoutProps {
 export const Layout = ({ children }: LayoutProps) => {
   return (
     <ProtectedRoute>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={true}>
         <div className="min-h-screen flex w-full bg-background">
           <AppSidebar />
           <main className="flex-1 relative overflow-y-auto">
+            <div className="fixed top-4 left-4 z-50">
+              <SidebarTrigger className="h-10 w-10 rounded-xl bg-card/80 backdrop-blur-sm border-2 border-border hover:bg-card shadow-lg">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+            </div>
             {children}
           </main>
         </div>
