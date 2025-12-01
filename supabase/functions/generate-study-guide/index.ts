@@ -93,13 +93,15 @@ Generate a study guide that is 1500-2500 words, highly specific to the student's
 
     console.log('Generating study guide for subjects:', subjects.map((s: SubjectData) => s.code).join(', '));
 
+    const model = 'llama3.2:latest';
+
     const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3.2:3b',
+        model: model,
         messages: [
           { 
             role: 'system', 
@@ -114,8 +116,22 @@ Generate a study guide that is 1500-2500 words, highly specific to the student's
     if (!ollamaResponse.ok) {
       const errorText = await ollamaResponse.text();
       console.error('Ollama error:', ollamaResponse.status, errorText);
+      
+      // Try to parse the error to give a more helpful message
+      let errorMessage = 'Failed to connect to Ollama. Check your ngrok URL and ensure Ollama is running.';
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.includes('not found')) {
+          errorMessage = `Model "${model}" not found in Ollama. Please run: ollama pull ${model}`;
+        } else {
+          errorMessage = errorJson.error || errorMessage;
+        }
+      } catch {
+        // If we can't parse, use default message
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to connect to Ollama. Check your ngrok URL and ensure Ollama is running.' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
