@@ -10,37 +10,37 @@ const Documents = () => {
   const uploaderRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
+    // Reset animation flag when component mounts
+    hasAnimated.current = false;
+    
     // Page entrance animations
     const tl = gsap.timeline();
     
-    if (headerRef.current) {
+    if (headerRef.current && uploaderRef.current && historyRef.current) {
       tl.fromTo(
         headerRef.current,
         { opacity: 0, y: -30 },
         { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
-      );
-    }
-    
-    if (uploaderRef.current) {
-      tl.fromTo(
+      )
+      .fromTo(
         uploaderRef.current,
         { opacity: 0, y: 30 },
         { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
         '-=0.3'
-      );
-    }
-    
-    if (historyRef.current) {
-      tl.fromTo(
+      )
+      .fromTo(
         historyRef.current,
         { opacity: 0, y: 20 },
         { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
         '-=0.2'
       );
+      
+      hasAnimated.current = true;
     }
-  }, []);
+  });
 
   const handleUploadSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
