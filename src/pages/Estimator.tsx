@@ -1,174 +1,119 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { gsap } from "gsap";
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Calculator } from "lucide-react";
-
-interface Semester {
-  id: number;
-  gpa: string;
-  credits: string;
-}
+import { PillToggle } from "@/components/PillToggle";
+import { GPATrendChart } from "@/components/GPATrendChart";
+import { GraduationTimeline } from "@/components/GraduationTimeline";
+import { sampleStudent } from "@/data/sampleStudentData";
+import { predictFinalGPA, estimateGraduation } from "@/lib/academicPredictor";
+import { User, BookOpen } from "lucide-react";
 
 const Estimator = () => {
-  const [semesters, setSemesters] = useState<Semester[]>([
-    { id: 1, gpa: "", credits: "" },
-  ]);
-  const [cumulativeGPA, setCumulativeGPA] = useState<number | null>(null);
-  const [estimatedGraduation, setEstimatedGraduation] = useState<string>("");
+  const [activeView, setActiveView] = useState<string>("gpa");
+  
+  // GSAP refs
+  const headerRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  // Calculate predictions
+  const gpaPrediction = useMemo(() => predictFinalGPA(sampleStudent), []);
+  const graduationPrediction = useMemo(() => estimateGraduation(sampleStudent), []);
 
-  const addSemester = () => {
-    setSemesters([...semesters, { id: Date.now(), gpa: "", credits: "" }]);
-  };
-
-  const removeSemester = (id: number) => {
-    setSemesters(semesters.filter((sem) => sem.id !== id));
-  };
-
-  const updateSemester = (id: number, field: "gpa" | "credits", value: string) => {
-    setSemesters(
-      semesters.map((sem) =>
-        sem.id === id ? { ...sem, [field]: value } : sem
-      )
-    );
-  };
-
-  const calculate = () => {
-    let totalPoints = 0;
-    let totalCredits = 0;
-
-    semesters.forEach((sem) => {
-      const gpa = parseFloat(sem.gpa);
-      const credits = parseFloat(sem.credits);
-      if (!isNaN(gpa) && !isNaN(credits)) {
-        totalPoints += gpa * credits;
-        totalCredits += credits;
-      }
-    });
-
-    if (totalCredits > 0) {
-      const cgpa = totalPoints / totalCredits;
-      setCumulativeGPA(parseFloat(cgpa.toFixed(2)));
-
-      // Estimate graduation (assuming 130 credits needed, avg 18 credits/semester)
-      const creditsRemaining = Math.max(0, 130 - totalCredits);
-      const semestersRemaining = Math.ceil(creditsRemaining / 18);
-      const currentDate = new Date();
-      currentDate.setMonth(currentDate.getMonth() + semestersRemaining * 6);
-      setEstimatedGraduation(currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }));
+  // Entrance animation
+  useEffect(() => {
+    const tl = gsap.timeline();
+    
+    if (headerRef.current) {
+      tl.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
+      );
     }
-  };
+    
+    if (toggleRef.current) {
+      tl.fromTo(
+        toggleRef.current,
+        { opacity: 0, scale: 0.9 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.7)" },
+        "-=0.3"
+      );
+    }
+    
+    if (contentRef.current) {
+      tl.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        "-=0.2"
+      );
+    }
+  }, []);
+
+  // View switch animation
+  useEffect(() => {
+    if (contentRef.current) {
+      gsap.fromTo(
+        contentRef.current,
+        { opacity: 0, x: activeView === "gpa" ? -20 : 20 },
+        { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }
+      );
+    }
+  }, [activeView]);
 
   return (
     <Layout>
-      <div className="relative min-h-screen p-8">
+      <div className="relative min-h-screen p-4 md:p-8">
         <DecorativeBackground />
         
-        <div className="relative z-10 max-w-4xl mx-auto space-y-8">
+        <div className="relative z-10 max-w-5xl mx-auto space-y-8">
           {/* Header */}
-          <div>
-            <h1 className="text-4xl font-bold text-primary">GPA & Graduation Estimator</h1>
-            <p className="text-muted-foreground mt-2">
-              Calculate your cumulative GPA and estimate your graduation date
-            </p>
+          <div ref={headerRef} className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Academic Estimator
+            </h1>
+            
+            {/* Student Info */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span>{sampleStudent.name}</span>
+              </div>
+              <span className="hidden md:inline">•</span>
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span>{sampleStudent.program}</span>
+              </div>
+              <span className="hidden md:inline">•</span>
+              <span>Semester {sampleStudent.currentSemester}</span>
+            </div>
           </div>
 
-          {/* Input Card */}
-          <Card className="border-2 border-border bg-card/50 backdrop-blur">
-            <CardHeader>
-              <CardTitle>Enter Semester Data</CardTitle>
-              <CardDescription>Add your past semester GPAs and credit hours</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {semesters.map((semester, index) => (
-                <div key={semester.id} className="flex gap-4 items-end">
-                  <div className="flex-1">
-                    <Label htmlFor={`gpa-${semester.id}`}>Semester {index + 1} GPA</Label>
-                    <Input
-                      id={`gpa-${semester.id}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="4"
-                      placeholder="3.50"
-                      value={semester.gpa}
-                      onChange={(e) => updateSemester(semester.id, "gpa", e.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor={`credits-${semester.id}`}>Credit Hours</Label>
-                    <Input
-                      id={`credits-${semester.id}`}
-                      type="number"
-                      step="1"
-                      min="0"
-                      placeholder="18"
-                      value={semester.credits}
-                      onChange={(e) => updateSemester(semester.id, "credits", e.target.value)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  {semesters.length > 1 && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeSemester(semester.id)}
-                      className="rounded-xl"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <div className="flex gap-2">
-                <Button
-                  onClick={addSemester}
-                  variant="outline"
-                  className="rounded-xl"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Semester
-                </Button>
-                <Button
-                  onClick={calculate}
-                  className="rounded-xl bg-primary hover:bg-primary/90"
-                >
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Calculate
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Centered Pill Toggle */}
+          <div ref={toggleRef} className="flex justify-center">
+            <PillToggle
+              value={activeView}
+              onChange={setActiveView}
+              options={[
+                { value: "gpa", label: "GPA" },
+                { value: "graduation", label: "Graduation" },
+              ]}
+            />
+          </div>
 
-          {/* Results Card */}
-          {cumulativeGPA !== null && (
-            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur">
-              <CardHeader>
-                <CardTitle>Your Results</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="bg-background/50 rounded-2xl p-6 border border-border">
-                    <p className="text-sm text-muted-foreground mb-2">Cumulative GPA</p>
-                    <p className="text-4xl font-bold text-primary">{cumulativeGPA}</p>
-                  </div>
-                  <div className="bg-background/50 rounded-2xl p-6 border border-border">
-                    <p className="text-sm text-muted-foreground mb-2">Estimated Graduation</p>
-                    <p className="text-2xl font-bold text-accent">{estimatedGraduation}</p>
-                  </div>
-                </div>
-                <div className="bg-background/50 rounded-2xl p-4 border border-border">
-                  <p className="text-sm text-muted-foreground">
-                    Based on 130 total credits needed and average 18 credits per semester
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Content Area */}
+          <div ref={contentRef}>
+            {activeView === "gpa" ? (
+              <GPATrendChart prediction={gpaPrediction} />
+            ) : (
+              <GraduationTimeline 
+                prediction={graduationPrediction}
+                totalCreditsRequired={sampleStudent.totalCreditsRequired}
+              />
+            )}
+          </div>
         </div>
       </div>
     </Layout>
