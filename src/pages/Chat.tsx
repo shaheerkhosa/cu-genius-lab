@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
@@ -8,30 +8,62 @@ import { Send } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { OllamaSettings, getOllamaUrl } from "@/components/OllamaSettings";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { ChatHistory } from "@/components/ChatHistory";
+import { ChatLanding } from "@/components/ChatLanding";
+import { useConversations } from "@/hooks/useConversations";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const Chat = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const initialMessage = (location.state as { initialMessage?: string })?.initialMessage;
   const hasProcessedInitial = useRef(false);
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hello! I'm CUIntelligence, your academic assistant powered by Ollama. How can I help you today?",
-    },
-  ]);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState(() => getOllamaUrl());
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const {
+    conversations,
+    currentConversationId,
+    messages,
+    createConversation,
+    addMessage,
+    selectConversation,
+    startNewChat,
+    deleteConversation,
+  } = useConversations(user?.id);
+
+  // Auth check
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth", { state: { from: "/chat" } });
+    }
+  }, [authLoading, user, navigate]);
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
@@ -40,48 +72,48 @@ const Chat = () => {
 
   // Handle initial message from landing page
   useEffect(() => {
-    if (initialMessage && !hasProcessedInitial.current) {
+    if (initialMessage && !hasProcessedInitial.current && user) {
       hasProcessedInitial.current = true;
-      setPendingMessage(initialMessage);
+      handleSendMessage(initialMessage);
     }
-  }, [initialMessage]);
+  }, [initialMessage, user]);
 
-  // Process pending message (from landing page)
-  useEffect(() => {
-    if (pendingMessage && !isLoading) {
-      handleSend(pendingMessage);
-      setPendingMessage(null);
-    }
-  }, [pendingMessage]);
+  const handleSendMessage = async (messageContent: string) => {
+    if (!messageContent.trim() || isSending || !user) return;
 
-  const handleSend = async (messageOverride?: string) => {
-    const messageToSend = messageOverride || input;
-    if (!messageToSend.trim() || isLoading) return;
-
-    // Get fresh URL from localStorage in case it was just updated
     const currentUrl = getOllamaUrl();
     if (!currentUrl) {
       toast.error("Please configure your ngrok URL in settings first");
       return;
     }
 
-    const userMessage: Message = { role: "user", content: messageToSend };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
+    setIsSending(true);
 
     try {
-      // Call the edge function with the ngrok URL
+      // Create conversation if needed
+      let convId = currentConversationId;
+      if (!convId) {
+        convId = await createConversation();
+        if (!convId) {
+          throw new Error("Failed to create conversation");
+        }
+      }
+
+      // Add user message
+      await addMessage(convId, "user", messageContent);
+      setInput("");
+
+      // Call the edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            messages: [...messages, userMessage],
+            messages: [...messages, { role: "user", content: messageContent }],
             ollamaUrl: currentUrl,
           }),
         }
@@ -89,33 +121,55 @@ const Chat = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response from Ollama');
+        throw new Error(errorData.error || "Failed to get response from Ollama");
       }
 
       const data = await response.json();
-      console.log('Ollama response:', data);
+      console.log("Ollama response:", data);
 
       if (data.message?.content) {
-        setMessages((prev) => [...prev, { 
-          role: "assistant", 
-          content: data.message.content 
-        }]);
+        await addMessage(convId, "assistant", data.message.content);
       } else {
-        throw new Error('No response content from Ollama');
+        throw new Error("No response content from Ollama");
       }
     } catch (error) {
-      console.error('Error calling Ollama:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to connect to Ollama. Please check your settings.");
+      console.error("Error calling Ollama:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to Ollama. Please check your settings."
+      );
     } finally {
-      setIsLoading(false);
+      setIsSending(false);
     }
   };
+
+  const handleSend = () => {
+    handleSendMessage(input);
+  };
+
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="h-screen flex items-center justify-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  // Show landing UI when no active conversation
+  const showLanding = !currentConversationId && messages.length === 0;
 
   return (
     <Layout>
       <div className="relative h-screen flex flex-col">
         <DecorativeBackground />
-        
+
         <div className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full p-8">
           {/* Header */}
           <div className="mb-6">
@@ -124,55 +178,75 @@ const Chat = () => {
                 <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
                 <p className="text-muted-foreground mt-1">Powered by Ollama</p>
               </div>
+              <ChatHistory
+                conversations={conversations}
+                currentConversationId={currentConversationId}
+                onSelect={selectConversation}
+                onNewChat={startNewChat}
+                onDelete={deleteConversation}
+              />
             </div>
             <div className="mt-4">
               <OllamaSettings onUrlChange={setOllamaUrl} />
             </div>
           </div>
 
-          {/* Messages */}
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
+          {showLanding ? (
+            <ChatLanding onSubmit={handleSendMessage} isLoading={isSending} />
+          ) : (
+            <>
+              {/* Messages */}
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-4">
+                  {messages.map((message, index) => (
+                    <div
+                      key={message.id || index}
+                      className={`flex gap-3 ${
+                        message.role === "user" ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        }`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {isSending && (
+                    <div className="flex gap-3 justify-start">
+                      <div className="bg-muted text-foreground rounded-2xl px-4 py-3">
+                        <p className="text-sm text-muted-foreground">Thinking...</p>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={scrollRef} />
                 </div>
-              ))}
-              <div ref={scrollRef} />
-            </div>
-          </ScrollArea>
+              </ScrollArea>
 
-          {/* Input */}
-          <div className="mt-6 flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
-              placeholder={isLoading ? "Waiting for response..." : "Type your question..."}
-              disabled={isLoading}
-              className="flex-1 rounded-2xl bg-muted/30 border-2 border-muted focus:border-primary"
-            />
-            <Button
-              onClick={() => handleSend()}
-              disabled={isLoading}
-              className="rounded-2xl px-6 bg-primary hover:bg-primary/90"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-          </div>
+              {/* Input */}
+              <div className="mt-6 flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && !isSending && handleSend()}
+                  placeholder={isSending ? "Waiting for response..." : "Type your question..."}
+                  disabled={isSending}
+                  className="flex-1 rounded-2xl bg-muted/30 border-2 border-muted focus:border-primary"
+                />
+                <Button
+                  onClick={() => handleSend()}
+                  disabled={isSending || !input.trim()}
+                  className="rounded-2xl px-6 bg-primary hover:bg-primary/90"
+                >
+                  <Send className="h-5 w-5" />
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </Layout>
