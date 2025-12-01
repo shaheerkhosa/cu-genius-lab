@@ -31,8 +31,7 @@ const Study = () => {
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    // Reset animation flag
-    hasAnimated.current = false;
+    if (hasAnimated.current) return;
     
     // Page entrance animations
     const tl = gsap.timeline();
@@ -83,7 +82,7 @@ const Study = () => {
       
       hasAnimated.current = true;
     }
-  });
+  }, []);
 
   const handleGenerateGuide = async () => {
     if (selectedSubjects.length === 0) {
