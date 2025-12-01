@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User } from "lucide-react";
+import { Send } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { OllamaSettings, getOllamaUrl } from "@/components/OllamaSettings";
@@ -14,6 +15,11 @@ interface Message {
 }
 
 const Chat = () => {
+  const location = useLocation();
+  const initialMessage = (location.state as { initialMessage?: string })?.initialMessage;
+  const hasProcessedInitial = useRef(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -27,14 +33,30 @@ const Chat = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  // Handle initial message from landing page
+  useEffect(() => {
+    if (initialMessage && !hasProcessedInitial.current) {
+      hasProcessedInitial.current = true;
+      setPendingMessage(initialMessage);
+    }
+  }, [initialMessage]);
+
+  // Process pending message (from landing page)
+  useEffect(() => {
+    if (pendingMessage && !isLoading) {
+      handleSend(pendingMessage);
+      setPendingMessage(null);
+    }
+  }, [pendingMessage]);
+
+  const handleSend = async (messageOverride?: string) => {
+    const messageToSend = messageOverride || input;
+    if (!messageToSend.trim() || isLoading) return;
 
     // Get fresh URL from localStorage in case it was just updated
     const currentUrl = getOllamaUrl();
@@ -43,7 +65,7 @@ const Chat = () => {
       return;
     }
 
-    const userMessage: Message = { role: "user", content: input };
+    const userMessage: Message = { role: "user", content: messageToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -118,11 +140,6 @@ const Chat = () => {
                     message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {message.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-5 w-5 text-primary-foreground" />
-                    </div>
-                  )}
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       message.role === "user"
@@ -132,11 +149,6 @@ const Chat = () => {
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
-                  {message.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                      <User className="h-5 w-5 text-accent-foreground" />
-                    </div>
-                  )}
                 </div>
               ))}
               <div ref={scrollRef} />
@@ -154,7 +166,7 @@ const Chat = () => {
               className="flex-1 rounded-2xl bg-muted/30 border-2 border-muted focus:border-primary"
             />
             <Button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={isLoading}
               className="rounded-2xl px-6 bg-primary hover:bg-primary/90"
             >
