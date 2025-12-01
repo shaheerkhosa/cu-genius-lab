@@ -9,11 +9,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Separator } from "@/components/ui/separator";
 
 const menuItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
@@ -30,6 +32,7 @@ const adminMenuItems = [
 export function AppSidebar() {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
+  const { open } = useSidebar();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -42,63 +45,76 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
-      <SidebarContent className="pt-8">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar-background" collapsible="icon">
+      <SidebarContent className="pt-16">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-2">
+            <SidebarMenu className="space-y-1">
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={!open ? item.title : undefined}
+                    className="h-12"
+                  >
                     <NavLink
                       to={item.url}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                        `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                            ? "bg-primary/10 text-primary border-2 border-primary/20 font-semibold"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
                         }`
                       }
                     >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
               
               {/* Admin-only menu items */}
-              {isAdmin && adminMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {isAdmin && (
+                <>
+                  <Separator className="my-3" />
+                  {adminMenuItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton 
+                        asChild 
+                        tooltip={!open ? item.title : undefined}
+                        className="h-12"
+                      >
+                        <NavLink
+                          to={item.url}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
+                              isActive
+                                ? "bg-primary/10 text-primary border-2 border-primary/20 font-semibold"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
+                            }`
+                          }
+                        >
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {open && <span className="truncate">{item.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-3">
         <Button
           onClick={handleLogout}
           variant="default"
-          className="w-full rounded-xl bg-primary hover:bg-primary/90"
+          className="w-full rounded-xl bg-destructive hover:bg-destructive/90 h-12"
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Signout
+          <LogOut className={`h-4 w-4 shrink-0 ${open ? 'mr-2' : ''}`} />
+          {open && <span>Signout</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
