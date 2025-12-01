@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import Estimator from "./pages/Estimator";
 import Documents from "./pages/Documents";
+import AdminDocuments from "./pages/AdminDocuments";
 import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/estimator" element={<Estimator />} />
           <Route path="/documents" element={<Documents />} />
+          <Route path="/admin/documents" element={<AdminDocuments />} />
           <Route path="/study" element={<Study />} />
           <Route path="/progress" element={<Progress />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
