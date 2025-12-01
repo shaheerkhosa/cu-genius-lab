@@ -132,9 +132,46 @@ export function analyzeStudentPerformance(student: StudentProfile): PerformanceA
   };
 }
 
+export function getCurrentSemesterPerformance(student: StudentProfile): SubjectPerformance[] {
+  const currentSemester = student.semesters.find(s => s.status === 'current');
+  
+  if (!currentSemester) return [];
+
+  const performances: SubjectPerformance[] = [];
+
+  currentSemester.courses.forEach(course => {
+    const cloScores = generateMockCLOScores(course);
+    const weakCLOs = cloScores.filter(clo => clo.score < 60);
+    const overallPerformance = (course.points / 4.0) * 100;
+
+    performances.push({
+      code: course.code,
+      name: course.name,
+      overallPerformance,
+      grade: course.grade,
+      gradePoints: course.points,
+      credits: course.credits,
+      semester: currentSemester.name,
+      cloScores,
+      weakCLOs,
+      trend: 'stable',
+      needsAttention: overallPerformance < 70 || weakCLOs.length > 2,
+    });
+  });
+
+  return performances.sort((a, b) => a.overallPerformance - b.overallPerformance);
+}
+
 export function getSubjectColor(performance: number): string {
   if (performance >= 85) return 'from-green-400 to-emerald-500';
   if (performance >= 70) return 'from-blue-400 to-indigo-500';
   if (performance >= 60) return 'from-yellow-400 to-orange-500';
   return 'from-red-400 to-pink-500';
+}
+
+export function getPerformanceBorderColor(performance: number): string {
+  if (performance >= 85) return 'border-green-400';
+  if (performance >= 70) return 'border-blue-400';
+  if (performance >= 60) return 'border-yellow-400';
+  return 'border-red-400';
 }
