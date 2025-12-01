@@ -54,13 +54,16 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
-                    tooltip={!open ? item.title : undefined}
+                    tooltip={{
+                      children: item.title,
+                      hidden: open,
+                    }}
                     className="h-12"
                   >
                     <NavLink
                       to={item.url}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
+                        `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
                           isActive
                             ? "bg-primary/10 text-primary border-2 border-primary/20 font-semibold"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
@@ -82,13 +85,16 @@ export function AppSidebar() {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 
-                        tooltip={!open ? item.title : undefined}
+                        tooltip={{
+                          children: item.title,
+                          hidden: open,
+                        }}
                         className="h-12"
                       >
                         <NavLink
                           to={item.url}
                           className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
+                            `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
                               isActive
                                 ? "bg-primary/10 text-primary border-2 border-primary/20 font-semibold"
                                 : "text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
@@ -111,7 +117,7 @@ export function AppSidebar() {
         <Button
           onClick={handleLogout}
           variant="default"
-          className="w-full rounded-xl bg-destructive hover:bg-destructive/90 h-12"
+          className={`w-full rounded-xl bg-destructive hover:bg-destructive/90 h-12 ${!open ? 'px-0 justify-center' : ''}`}
         >
           <LogOut className={`h-4 w-4 shrink-0 ${open ? 'mr-2' : ''}`} />
           {open && <span>Signout</span>}
