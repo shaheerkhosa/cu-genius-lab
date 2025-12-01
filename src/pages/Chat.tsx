@@ -40,6 +40,9 @@ const Chat = () => {
     selectConversation,
     startNewChat,
     deleteConversation,
+    currentSummary,
+    updateSummary,
+    shouldGenerateSummary,
   } = useConversations(user?.id);
 
   // Auth check
@@ -140,7 +143,8 @@ const Chat = () => {
       await addMessage(convId, "user", messageContent);
       setInput("");
 
-      // Call the edge function
+      // Call the edge function with summary + last 2 messages
+      const allMessages = [...messages, { role: "user", content: messageContent }];
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`,
         {
@@ -150,8 +154,9 @@ const Chat = () => {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
-            messages: [...messages, { role: "user", content: messageContent }],
+            messages: allMessages.slice(-2), // Only send last 2 messages
             ollamaUrl: currentUrl,
+            summary: currentSummary, // Include rolling summary for context
           }),
         }
       );
@@ -166,6 +171,31 @@ const Chat = () => {
 
       if (data.message?.content) {
         await addMessage(convId, "assistant", data.message.content);
+        
+        // Generate summary every 4 messages (in background)
+        if (shouldGenerateSummary()) {
+          console.log("Generating rolling summary...");
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              messages: allMessages.slice(-6), // Summarize last 6 messages
+              ollamaUrl: currentUrl,
+              generateSummary: true,
+            }),
+          })
+            .then((res) => res.json())
+            .then((summaryData) => {
+              if (summaryData.summary) {
+                updateSummary(convId, summaryData.summary);
+                console.log("Summary updated:", summaryData.summary);
+              }
+            })
+            .catch((err) => console.error("Summary generation failed:", err));
+        }
       } else {
         throw new Error("No response content from Ollama");
       }

@@ -13,6 +13,8 @@ export interface Conversation {
   title: string;
   created_at: string;
   updated_at: string;
+  summary: string | null;
+  message_count: number;
 }
 
 export function useConversations(userId: string | undefined) {
@@ -20,6 +22,8 @@ export function useConversations(userId: string | undefined) {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSummary, setCurrentSummary] = useState<string | null>(null);
+  const [messageCount, setMessageCount] = useState(0);
 
   // Fetch all conversations for user
   useEffect(() => {
@@ -41,14 +45,29 @@ export function useConversations(userId: string | undefined) {
     fetchConversations();
   }, [userId]);
 
-  // Fetch messages when conversation changes
+  // Fetch messages and summary when conversation changes
   useEffect(() => {
     if (!currentConversationId) {
       setMessages([]);
+      setCurrentSummary(null);
+      setMessageCount(0);
       return;
     }
 
-    const fetchMessages = async () => {
+    const fetchConversationData = async () => {
+      // Fetch conversation details for summary
+      const { data: convData } = await supabase
+        .from("conversations")
+        .select("summary, message_count")
+        .eq("id", currentConversationId)
+        .single();
+
+      if (convData) {
+        setCurrentSummary(convData.summary);
+        setMessageCount(convData.message_count);
+      }
+
+      // Fetch messages
       const { data, error } = await supabase
         .from("messages")
         .select("*")
@@ -68,7 +87,7 @@ export function useConversations(userId: string | undefined) {
       );
     };
 
-    fetchMessages();
+    fetchConversationData();
   }, [currentConversationId]);
 
   const createConversation = async (title: string = "New Chat"): Promise<string | null> => {
@@ -88,6 +107,8 @@ export function useConversations(userId: string | undefined) {
 
     setConversations((prev) => [data, ...prev]);
     setCurrentConversationId(data.id);
+    setCurrentSummary(null);
+    setMessageCount(0);
     return data.id;
   };
 
@@ -109,6 +130,15 @@ export function useConversations(userId: string | undefined) {
 
     setMessages((prev) => [...prev, { id: data.id, role, content }]);
 
+    // Update message count
+    const newCount = messageCount + 1;
+    setMessageCount(newCount);
+    
+    await supabase
+      .from("conversations")
+      .update({ message_count: newCount })
+      .eq("id", conversationId);
+
     // Update conversation title based on first user message
     if (role === "user" && messages.length === 0) {
       const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
@@ -123,6 +153,23 @@ export function useConversations(userId: string | undefined) {
     }
 
     return data;
+  };
+
+  const updateSummary = async (conversationId: string, summary: string) => {
+    const { error } = await supabase
+      .from("conversations")
+      .update({ summary })
+      .eq("id", conversationId);
+
+    if (error) {
+      console.error("Error updating summary:", error);
+      return;
+    }
+
+    setCurrentSummary(summary);
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, summary } : c))
+    );
   };
 
   const updateLastMessage = (content: string) => {
@@ -142,6 +189,8 @@ export function useConversations(userId: string | undefined) {
   const startNewChat = () => {
     setCurrentConversationId(null);
     setMessages([]);
+    setCurrentSummary(null);
+    setMessageCount(0);
   };
 
   const deleteConversation = async (id: string) => {
@@ -159,6 +208,11 @@ export function useConversations(userId: string | undefined) {
     }
   };
 
+  // Check if we should generate a summary (every 4 messages)
+  const shouldGenerateSummary = () => {
+    return messageCount > 0 && messageCount % 4 === 0;
+  };
+
   return {
     conversations,
     currentConversationId,
@@ -172,5 +226,9 @@ export function useConversations(userId: string | undefined) {
     startNewChat,
     deleteConversation,
     setMessages,
+    currentSummary,
+    updateSummary,
+    messageCount,
+    shouldGenerateSummary,
   };
 }
