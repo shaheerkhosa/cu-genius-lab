@@ -16,12 +16,25 @@ interface SubjectCardProps {
 
 export function SubjectCard({ subject, selected, onSelect, onMoreInfo }: SubjectCardProps) {
   const performance = Math.round(subject.overallPerformance);
-  const borderColor = getPerformanceBorderColor(subject.overallPerformance);
+  
+  // Get frosted background color based on performance
+  const getBackgroundColor = () => {
+    if (performance >= 85) {
+      return selected ? 'bg-green-400/30' : 'bg-green-400/20';
+    }
+    if (performance >= 70) {
+      return selected ? 'bg-blue-400/30' : 'bg-blue-400/20';
+    }
+    if (performance >= 60) {
+      return selected ? 'bg-yellow-400/30' : 'bg-yellow-400/20';
+    }
+    return selected ? 'bg-red-400/30' : 'bg-red-400/20';
+  };
 
   return (
     <Card 
-      className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer bg-card/50 backdrop-blur border-l-4 ${borderColor} ${
-        selected ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : ''
+      className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer backdrop-blur border border-border/50 ${getBackgroundColor()} ${
+        selected ? 'shadow-lg scale-[1.02]' : ''
       }`}
       onClick={() => onSelect(!selected)}
     >
