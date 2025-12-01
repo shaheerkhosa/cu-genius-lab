@@ -1,4 +1,4 @@
-import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield } from "lucide-react";
+import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield, Menu } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -32,7 +32,7 @@ const adminMenuItems = [
 export function AppSidebar() {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
-  const { open } = useSidebar();
+  const { open, toggleSidebar } = useSidebar();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -50,6 +50,28 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
+              {/* Collapse/Expand Trigger */}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  tooltip={{
+                    children: open ? "Collapse Sidebar" : "Expand Sidebar",
+                    hidden: open,
+                  }}
+                  className="h-12"
+                >
+                  <button
+                    onClick={toggleSidebar}
+                    className={`flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent w-full`}
+                  >
+                    <Menu className="h-5 w-5 shrink-0" />
+                    {open && <span className="truncate">Collapse</span>}
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <Separator className="my-3" />
+              
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
