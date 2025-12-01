@@ -116,8 +116,8 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <Button
           onClick={handleLogout}
-          variant="default"
-          className={`w-full rounded-xl bg-destructive hover:bg-destructive/90 h-12 ${!open ? 'px-0 justify-center' : ''}`}
+          variant="outline"
+          className={`w-full rounded-xl bg-primary/10 hover:bg-primary/20 border-2 border-primary/20 text-primary backdrop-blur-sm h-12 ${!open ? 'px-0 justify-center' : ''}`}
         >
           <LogOut className={`h-4 w-4 shrink-0 ${open ? 'mr-2' : ''}`} />
           {open && <span>Signout</span>}

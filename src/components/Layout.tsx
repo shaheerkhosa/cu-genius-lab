@@ -16,7 +16,7 @@ export const Layout = ({ children }: LayoutProps) => {
           <AppSidebar />
           <main className="flex-1 relative overflow-y-auto">
             <div className="fixed top-4 left-4 z-50">
-              <SidebarTrigger className="h-10 w-10 rounded-xl bg-card/80 backdrop-blur-sm border-2 border-border hover:bg-card shadow-lg">
+              <SidebarTrigger className="h-12 w-12 rounded-xl bg-card/80 backdrop-blur-sm border-2 border-border hover:bg-card shadow-lg flex items-center justify-center">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
             </div>
