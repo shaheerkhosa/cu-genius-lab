@@ -520,6 +520,64 @@ const TeacherUpload = () => {
     setAttendanceRecords(prev => prev.map(r => r.student_id === studentId ? { ...r, status } : r));
   };
 
+  const handleScreenshotUpload = async () => {
+    if (!screenshotFile || attendanceRecords.length === 0) {
+      toast.error('Please select a screenshot and ensure students are loaded');
+      return;
+    }
+
+    setScreenshotParsing(true);
+
+    try {
+      // Convert image to base64
+      const arrayBuffer = await screenshotFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const base64 = btoa(binary);
+
+      const enrolled_students = attendanceRecords.map(r => ({
+        student_id: r.student_id,
+        student_name: r.student_name,
+        student_email: r.student_email,
+      }));
+
+      const response = await supabase.functions.invoke('parse-attendance', {
+        body: { image_base64: base64, enrolled_students },
+      });
+
+      if (response.error) {
+        toast.error('Failed to analyze screenshot');
+        setScreenshotParsing(false);
+        return;
+      }
+
+      const data = response.data;
+      if (data?.attendance && Array.isArray(data.attendance)) {
+        let matched = 0;
+        setAttendanceRecords(prev => prev.map(r => {
+          const match = data.attendance.find((a: any) => a.student_id === r.student_id);
+          if (match) {
+            matched++;
+            return { ...r, status: match.status };
+          }
+          return r;
+        }));
+        toast.success(`AI detected ${matched} students from screenshot`);
+      } else {
+        toast.error('Could not parse attendance from screenshot');
+      }
+    } catch (e) {
+      console.error('Screenshot parse error:', e);
+      toast.error('Failed to process screenshot');
+    }
+
+    setScreenshotParsing(false);
+    setScreenshotFile(null);
+  };
+
   const getScheduleStatus = (a: Assessment) => {
     if (!a.schedule_start || !a.schedule_end) return null;
     const now = new Date();
