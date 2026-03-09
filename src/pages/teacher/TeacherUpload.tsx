@@ -143,6 +143,7 @@ const TeacherUpload = () => {
   };
 
   const fetchAssessments = useCallback(async () => {
+    if (activeTab === 'attendance') { setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from('assessments')
