@@ -473,7 +473,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_enrolled_in_course: {
+        Args: { _course_code: string; _student_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
