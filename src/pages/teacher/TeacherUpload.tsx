@@ -48,6 +48,7 @@ interface StudentMark {
   marks_obtained: number | null;
   remarks: string | null;
   submission_file_path: string | null;
+  student_id: string | null;
 }
 
 interface QuizQuestion {
