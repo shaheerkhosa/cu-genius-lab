@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from '@/integrations/supabase/client';
+import { useTeacherCourses } from '@/hooks/useTeacherCourses';
 import { gsap } from 'gsap';
 import { TrendingUp, TrendingDown, Users, BarChart3, Loader2 } from 'lucide-react';
 import {
@@ -28,18 +29,19 @@ interface CourseStats {
   assessments: AssessmentStats[];
 }
 
-const courses = [
-  { code: 'CS403', name: 'Computer Networks' },
-  { code: 'CS401', name: 'Software Engineering' },
-  { code: 'CS402', name: 'Operating Systems' },
-  { code: 'CS404', name: 'Artificial Intelligence' },
-];
-
 const TeacherProgress = () => {
-  const [selectedCourse, setSelectedCourse] = useState(courses[0].code);
+  const { courses, loading: coursesLoading } = useTeacherCourses();
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [courseStats, setCourseStats] = useState<CourseStats | null>(null);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Set default selected course when courses load
+  useEffect(() => {
+    if (courses.length > 0 && !selectedCourse) {
+      setSelectedCourse(courses[0].code);
+    }
+  }, [courses, selectedCourse]);
 
   useEffect(() => {
     const fetchData = async () => {
