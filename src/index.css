@@ -72,13 +72,6 @@ All colors MUST be HSL.
     --sidebar-ring: 262 72% 70%;
   }
 
-  .dark .teacher-portal {
-    --primary: 262 72% 70%;
-    --ring: 262 72% 70%;
-    --accent: 217 91% 60%;
-    --sidebar-primary: 262 72% 70%;
-    --sidebar-ring: 262 72% 70%;
-  }
 }
 
 @layer base {
