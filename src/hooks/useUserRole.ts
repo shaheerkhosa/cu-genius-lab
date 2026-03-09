@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useUserRole() {
-  const [role, setRole] = useState<'admin' | 'moderator' | 'user' | null>(null);
+  const [role, setRole] = useState<'admin' | 'moderator' | 'teacher' | 'user' | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
