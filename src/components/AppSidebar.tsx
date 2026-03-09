@@ -22,6 +22,7 @@ const menuItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
   { title: "Estimator", url: "/estimator", icon: PieChart },
   { title: "Documents", url: "/documents", icon: FileText },
+  { title: "Quizzes", url: "/quizzes", icon: ClipboardList },
   { title: "Study", url: "/study", icon: BookOpen },
   { title: "Progress", url: "/progress", icon: TrendingUp },
 ];
