@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
 import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
+import TeacherProgress from "./pages/teacher/TeacherProgress";
 
 const queryClient = new QueryClient();
 
