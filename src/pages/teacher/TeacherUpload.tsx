@@ -442,6 +442,81 @@ const TeacherUpload = () => {
     fetchEnrollments();
   };
 
+  // ─── Attendance ───
+  const fetchAttendanceForDate = async () => {
+    setAttendanceLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAttendanceLoading(false); return; }
+
+    // Get enrolled students
+    const { data: enrolled } = await supabase.from('course_enrollments').select('student_id').eq('course_code', selectedCourse);
+    if (!enrolled || enrolled.length === 0) { setAttendanceRecords([]); setAttendanceLoading(false); return; }
+
+    const studentIds = enrolled.map(e => e.student_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, username, email').in('id', studentIds);
+    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+    const dateOnly = attendanceDate.slice(0, 10);
+
+    // Check existing attendance for this date
+    const { data: existing } = await supabase.from('attendance').select('*')
+      .eq('course_code', selectedCourse)
+      .eq('date', dateOnly);
+
+    const existingMap = new Map((existing || []).map(a => [a.student_id, a.status]));
+
+    const records = studentIds.map(sid => ({
+      student_id: sid,
+      student_name: profileMap.get(sid)?.username || 'Unknown',
+      student_email: profileMap.get(sid)?.email || '',
+      status: existingMap.get(sid) || 'present',
+    }));
+
+    setAttendanceRecords(records);
+    setAttendanceLoading(false);
+  };
+
+  const handleSaveAttendance = async () => {
+    setAttendanceSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAttendanceSaving(false); return; }
+
+    const dateOnly = attendanceDate.slice(0, 10);
+
+    // Delete existing records for this date/course
+    await supabase.from('attendance').delete()
+      .eq('course_code', selectedCourse)
+      .eq('date', dateOnly)
+      .eq('teacher_id', user.id);
+
+    // Insert new records
+    const rows = attendanceRecords.map(r => ({
+      course_code: selectedCourse,
+      student_id: r.student_id,
+      teacher_id: user.id,
+      date: dateOnly,
+      status: r.status,
+    }));
+
+    if (rows.length > 0) {
+      const { error } = await supabase.from('attendance').insert(rows);
+      if (error) { toast.error('Failed to save attendance'); setAttendanceSaving(false); return; }
+    }
+
+    toast.success('Attendance saved');
+    setAttendanceSaving(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'attendance') {
+      fetchAttendanceForDate();
+    }
+  }, [activeTab, selectedCourse, attendanceDate]);
+
+  const updateAttendanceStatus = (studentId: string, status: string) => {
+    setAttendanceRecords(prev => prev.map(r => r.student_id === studentId ? { ...r, status } : r));
+  };
+
   const getScheduleStatus = (a: Assessment) => {
     if (!a.schedule_start || !a.schedule_end) return null;
     const now = new Date();
