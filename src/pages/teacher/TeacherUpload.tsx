@@ -857,7 +857,7 @@ const TeacherUpload = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={v => setActiveTab(v as AssessmentType)}>
-            <TabsList className="animate-card grid w-full grid-cols-4 h-12 rounded-xl">
+            <TabsList className="animate-card grid w-full grid-cols-5 h-12 rounded-xl">
               {tabConfig.map(t => (
                 <TabsTrigger key={t.value} value={t.value} className="rounded-lg gap-2 text-sm">
                   {t.icon} {t.label}
