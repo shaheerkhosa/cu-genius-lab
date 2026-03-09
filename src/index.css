@@ -99,6 +99,18 @@ All colors MUST be HSL.
     --sidebar-ring: 217 91% 60%;
   }
 
+  /* Teacher portal theme in dark mode */
+  .dark.teacher-portal {
+    --primary: 271 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 271 91% 60%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --sidebar-primary: 271 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 271 91% 60%;
+  }
+
   .dark .teacher-portal {
     --primary: 271 91% 65%;
     --ring: 271 91% 65%;
