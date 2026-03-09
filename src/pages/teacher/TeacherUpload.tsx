@@ -83,6 +83,7 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
   { value: 'assignment', label: 'Assignments', icon: <FileText className="w-4 h-4" /> },
   { value: 'midterm', label: 'Midterms', icon: <BookOpen className="w-4 h-4" /> },
   { value: 'final', label: 'Finals', icon: <GraduationCap className="w-4 h-4" /> },
+  { value: 'attendance', label: 'Attendance', icon: <Users className="w-4 h-4" /> },
 ];
 
 // No more hardcoded students - we pull from course_enrollments
