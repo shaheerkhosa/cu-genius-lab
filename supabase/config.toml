@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.generate-teacher-guide]
 verify_jwt = true
+
+[functions.parse-attendance]
+verify_jwt = false

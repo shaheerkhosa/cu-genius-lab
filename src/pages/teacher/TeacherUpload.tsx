@@ -131,6 +131,8 @@ const TeacherUpload = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<{ student_id: string; student_name: string; student_email: string; status: string }[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceSaving, setAttendanceSaving] = useState(false);
+  const [screenshotParsing, setScreenshotParsing] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
@@ -516,6 +518,64 @@ const TeacherUpload = () => {
 
   const updateAttendanceStatus = (studentId: string, status: string) => {
     setAttendanceRecords(prev => prev.map(r => r.student_id === studentId ? { ...r, status } : r));
+  };
+
+  const handleScreenshotUpload = async () => {
+    if (!screenshotFile || attendanceRecords.length === 0) {
+      toast.error('Please select a screenshot and ensure students are loaded');
+      return;
+    }
+
+    setScreenshotParsing(true);
+
+    try {
+      // Convert image to base64
+      const arrayBuffer = await screenshotFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const base64 = btoa(binary);
+
+      const enrolled_students = attendanceRecords.map(r => ({
+        student_id: r.student_id,
+        student_name: r.student_name,
+        student_email: r.student_email,
+      }));
+
+      const response = await supabase.functions.invoke('parse-attendance', {
+        body: { image_base64: base64, enrolled_students },
+      });
+
+      if (response.error) {
+        toast.error('Failed to analyze screenshot');
+        setScreenshotParsing(false);
+        return;
+      }
+
+      const data = response.data;
+      if (data?.attendance && Array.isArray(data.attendance)) {
+        let matched = 0;
+        setAttendanceRecords(prev => prev.map(r => {
+          const match = data.attendance.find((a: any) => a.student_id === r.student_id);
+          if (match) {
+            matched++;
+            return { ...r, status: match.status };
+          }
+          return r;
+        }));
+        toast.success(`AI detected ${matched} students from screenshot`);
+      } else {
+        toast.error('Could not parse attendance from screenshot');
+      }
+    } catch (e) {
+      console.error('Screenshot parse error:', e);
+      toast.error('Failed to process screenshot');
+    }
+
+    setScreenshotParsing(false);
+    setScreenshotFile(null);
   };
 
   const getScheduleStatus = (a: Assessment) => {
@@ -1002,6 +1062,48 @@ const TeacherUpload = () => {
                       {attendanceSaving ? 'Saving...' : 'Upload Attendance'}
                     </Button>
                   </div>
+
+                  {/* Screenshot AI Upload */}
+                  {attendanceRecords.length > 0 && (
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <Label className="text-sm font-medium">Auto-detect from Screenshot</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload a screenshot from Zoom, Google Meet, or Teams showing participants. AI will match names against enrolled students and mark attendance automatically.
+                      </p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => setScreenshotFile(e.target.files?.[0] || null)}
+                          className="rounded-xl flex-1 max-w-xs"
+                        />
+                        <Button
+                          onClick={handleScreenshotUpload}
+                          disabled={!screenshotFile || screenshotParsing}
+                          variant="secondary"
+                          className="gap-2 rounded-xl"
+                        >
+                          {screenshotParsing ? (
+                            <>
+                              <span className="animate-spin">⏳</span> Analyzing...
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-4 h-4" /> Scan Screenshot
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {screenshotFile && !screenshotParsing && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> {screenshotFile.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {attendanceLoading ? (
                     <div className="text-center py-8 text-muted-foreground">Loading students...</div>
