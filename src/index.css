@@ -26,7 +26,7 @@ All colors MUST be HSL.
     --muted: 220 14% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 271 91% 65%;
+    --accent: 262 72% 65%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -48,7 +48,7 @@ All colors MUST be HSL.
     --sidebar-ring: 217 91% 60%;
   }
 
-  /* Teacher portal theme - purple primary */
+  /* Teacher portal theme - purple primary (light mode) */
   .teacher-portal {
     --primary: 262 72% 65%;
     --primary-foreground: 0 0% 100%;
@@ -60,6 +60,45 @@ All colors MUST be HSL.
     --sidebar-ring: 262 72% 65%;
   }
 
+  .dark {
+    --background: 217 33% 17%;
+    --foreground: 0 0% 100%;
+
+    --card: 217 33% 17%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 217 33% 17%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 32% 25%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 32% 25%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 262 72% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 32% 25%;
+    --input: 217 32% 25%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 217 33% 17%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 32% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 32% 25%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
   /* Teacher portal theme in dark mode */
   .dark.teacher-portal {
     --primary: 262 72% 70%;
@@ -69,14 +108,6 @@ All colors MUST be HSL.
     --accent-foreground: 0 0% 100%;
     --sidebar-primary: 262 72% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-ring: 262 72% 70%;
-  }
-
-  .dark .teacher-portal {
-    --primary: 262 72% 70%;
-    --ring: 262 72% 70%;
-    --accent: 217 91% 60%;
-    --sidebar-primary: 262 72% 70%;
     --sidebar-ring: 262 72% 70%;
   }
 }
