@@ -55,5 +55,5 @@ export function useUserRole() {
     fetchUserRole();
   }, []);
 
-  return { role, isAdmin, loading };
+  return { role, isAdmin, isTeacher, loading };
 }
