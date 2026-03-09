@@ -46,6 +46,7 @@ export function useUserRole() {
         console.error('Error in fetchUserRole:', err);
         setRole('user');
         setIsAdmin(false);
+        setIsTeacher(false);
       } finally {
         setLoading(false);
       }
