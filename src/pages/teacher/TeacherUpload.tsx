@@ -175,7 +175,21 @@ const TeacherUpload = () => {
   const fetchEnrollments = async () => {
     const { data } = await supabase.from('course_enrollments').select('*')
       .eq('course_code', selectedCourse);
-    setEnrollments((data as Enrollment[]) || []);
+    if (!data || data.length === 0) { setEnrollments([]); return; }
+    
+    // Fetch profiles for enrolled students
+    const studentIds = data.map(e => e.student_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, username, email').in('id', studentIds);
+    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+    
+    const enriched: Enrollment[] = data.map(e => ({
+      id: e.id,
+      student_id: e.student_id,
+      course_code: e.course_code,
+      student_name: profileMap.get(e.student_id)?.username || 'Unknown',
+      student_email: profileMap.get(e.student_id)?.email || '',
+    }));
+    setEnrollments(enriched);
   };
 
   const toggleExpand = (a: Assessment) => {
