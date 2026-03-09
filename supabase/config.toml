@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.parse-attendance]
 verify_jwt = false
+
+[functions.seed-data]
+verify_jwt = false
