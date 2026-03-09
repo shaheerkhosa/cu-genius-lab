@@ -33,6 +33,8 @@ interface TimetableSlot {
 }
 
 const TeacherSchedule = () => {
+  const { courses: teacherCourses } = useTeacherCourses();
+  const allCoursesForFilter = [{ code: 'ALL', name: 'All Courses' }, ...teacherCourses];
   const [view, setView] = useState('timetable');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
   const [assessments, setAssessments] = useState<any[]>([]);

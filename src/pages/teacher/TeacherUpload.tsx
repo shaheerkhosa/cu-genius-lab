@@ -85,8 +85,9 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
 // No more hardcoded students - we pull from course_enrollments
 
 const TeacherUpload = () => {
+  const { courses, loading: coursesLoading } = useTeacherCourses();
   const [activeTab, setActiveTab] = useState<AssessmentType>('quiz');
-  const [selectedCourse, setSelectedCourse] = useState(courses[0].code);
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [marksMap, setMarksMap] = useState<Record<string, StudentMark[]>>({});
