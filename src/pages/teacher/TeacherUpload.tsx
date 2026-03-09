@@ -111,8 +111,10 @@ const TeacherUpload = () => {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [newIsOnlineQuiz, setNewIsOnlineQuiz] = useState(false);
+  const [newIsOnlineAssignment, setNewIsOnlineAssignment] = useState(false);
   const [newScheduleStart, setNewScheduleStart] = useState('');
   const [newDurationMinutes, setNewDurationMinutes] = useState('30');
+  const [newDeadline, setNewDeadline] = useState('');
   const [newCourseCode, setNewCourseCode] = useState(courses[0].code);
 
   // Add student dialog
@@ -198,8 +200,10 @@ const TeacherUpload = () => {
     setNewTotalMarks('100');
     setNewFile(null);
     setNewIsOnlineQuiz(false);
+    setNewIsOnlineAssignment(false);
     setNewScheduleStart('');
     setNewDurationMinutes('30');
+    setNewDeadline('');
     setNewCourseCode(selectedCourse);
   };
 
@@ -209,6 +213,7 @@ const TeacherUpload = () => {
     if (!user) { toast.error('Not authenticated'); return; }
 
     const isQuizTab = activeTab === 'quiz';
+    const isAssignmentTab = activeTab === 'assignment';
     const isExamTab = activeTab === 'midterm' || activeTab === 'final';
 
     // Validate schedule for online quizzes
@@ -217,19 +222,31 @@ const TeacherUpload = () => {
       return;
     }
 
-    // PDF required for non-online assessments (quizzes without online, assignments, midterms, finals)
+    // Validate deadline for assignments
+    if (isAssignmentTab && !newDeadline) {
+      toast.error('Deadline is required for assignments');
+      return;
+    }
+
+    // PDF required for non-online assessments
     if (isQuizTab && !newIsOnlineQuiz && !newFile) {
       toast.error('PDF upload is required for paper-based quizzes');
       return;
     }
-    if ((activeTab === 'assignment' || isExamTab) && !newFile) {
+    if (isAssignmentTab && !newIsOnlineAssignment && !newFile) {
+      toast.error('PDF upload is required for paper-based assignments');
+      return;
+    }
+    if (isExamTab && !newFile) {
       toast.error('PDF upload is required');
       return;
     }
 
     const scheduleEnd = isQuizTab && newIsOnlineQuiz && newScheduleStart
       ? computeEndTime(newScheduleStart, newDurationMinutes)
-      : null;
+      : isAssignmentTab && newDeadline
+        ? new Date(newDeadline).toISOString()
+        : null;
 
     setUploading(true);
     let filePath: string | null = null;
@@ -250,7 +267,7 @@ const TeacherUpload = () => {
       title: newTitle.trim(),
       total_marks: parseInt(newTotalMarks) || 100,
       file_path: filePath,
-      is_online_quiz: isQuizTab && newIsOnlineQuiz,
+      is_online_quiz: (isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment),
       schedule_start: isQuizTab && newIsOnlineQuiz ? newScheduleStart : null,
       schedule_end: scheduleEnd,
       is_marks_finalized: false,
@@ -258,8 +275,8 @@ const TeacherUpload = () => {
 
     if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
 
-    // For non-online quizzes and assignments, add default students
-    if (!(isQuizTab && newIsOnlineQuiz)) {
+    // For non-online quizzes and non-online assignments, add default students
+    if (!((isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment))) {
       const studentRows = defaultStudents.map(s => ({
         assessment_id: (data as Assessment).id,
         student_name: s.name,
@@ -416,8 +433,9 @@ const TeacherUpload = () => {
   const renderCreateDialog = (tabLabel: string) => {
     const singular = tabLabel.slice(0, -1);
     const isQuizTab = activeTab === 'quiz';
+    const isAssignmentTab = activeTab === 'assignment';
     const isExamTab = activeTab === 'midterm' || activeTab === 'final';
-    const pdfRequired = isQuizTab ? !newIsOnlineQuiz : true;
+    const pdfRequired = isQuizTab ? !newIsOnlineQuiz : isAssignmentTab ? !newIsOnlineAssignment : true;
 
     return (
       <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
@@ -426,7 +444,7 @@ const TeacherUpload = () => {
             <Plus className="w-4 h-4" /> New {singular}
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create {singular}</DialogTitle>
           </DialogHeader>
@@ -467,6 +485,17 @@ const TeacherUpload = () => {
               </div>
             )}
 
+            {/* Online assignment toggle (assignment tab only) */}
+            {isAssignmentTab && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
+                <div>
+                  <Label className="text-sm font-medium">Online Submission</Label>
+                  <p className="text-xs text-muted-foreground">Students submit answers online for you to review</p>
+                </div>
+                <Switch checked={newIsOnlineAssignment} onCheckedChange={setNewIsOnlineAssignment} />
+              </div>
+            )}
+
             {/* Schedule (online quiz only) */}
             {isQuizTab && newIsOnlineQuiz && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border/50">
@@ -488,6 +517,16 @@ const TeacherUpload = () => {
                     End time: {new Date(computeEndTime(newScheduleStart, newDurationMinutes)).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Deadline (assignment tab) */}
+            {isAssignmentTab && (
+              <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+                <Label className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="w-4 h-4" /> Deadline <span className="text-destructive text-xs">*required</span>
+                </Label>
+                <Input type="datetime-local" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} className="rounded-lg text-sm" />
               </div>
             )}
 
@@ -725,10 +764,16 @@ const TeacherUpload = () => {
                                         <h3 className="font-semibold">{a.title}</h3>
                                         <Badge variant="outline" className="text-xs">{a.total_marks} marks</Badge>
                                         {a.file_path && <Badge variant="secondary" className="text-xs gap-1"><Paperclip className="w-3 h-3" /> PDF</Badge>}
-                                        {a.is_online_quiz && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online</Badge>}
-                                        {scheduleStatus === 'live' && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0">● Live</Badge>}
-                                        {scheduleStatus === 'scheduled' && <Badge variant="secondary" className="text-xs gap-1"><Clock className="w-3 h-3" /> Scheduled</Badge>}
-                                        {scheduleStatus === 'ended' && <Badge variant="secondary" className="text-xs">Ended</Badge>}
+                                        {a.is_online_quiz && a.assessment_type === 'quiz' && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online</Badge>}
+                                        {a.is_online_quiz && a.assessment_type === 'assignment' && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online Submission</Badge>}
+                                        {a.assessment_type === 'assignment' && a.schedule_end && (
+                                          <Badge variant={new Date(a.schedule_end) < new Date() ? 'destructive' : 'secondary'} className="text-xs gap-1">
+                                            <Clock className="w-3 h-3" /> Due {formatDateTime(a.schedule_end)}
+                                          </Badge>
+                                        )}
+                                        {scheduleStatus === 'live' && a.assessment_type !== 'assignment' && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0">● Live</Badge>}
+                                        {scheduleStatus === 'scheduled' && a.assessment_type !== 'assignment' && <Badge variant="secondary" className="text-xs gap-1"><Clock className="w-3 h-3" /> Scheduled</Badge>}
+                                        {scheduleStatus === 'ended' && a.assessment_type !== 'assignment' && <Badge variant="secondary" className="text-xs">Ended</Badge>}
                                         {a.is_marks_finalized && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0"><CheckCircle className="w-3 h-3" /> Finalized</Badge>}
                                       </div>
                                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -755,7 +800,7 @@ const TeacherUpload = () => {
                             <CollapsibleContent>
                               <div className="px-4 pb-4 space-y-4">
                                 {/* Online quiz: show quiz builder */}
-                                {a.is_online_quiz && (
+                                {a.is_online_quiz && a.assessment_type === 'quiz' && (
                                   <QuizBuilder
                                     assessmentId={a.id}
                                     totalMarks={a.total_marks}
@@ -764,14 +809,33 @@ const TeacherUpload = () => {
                                   />
                                 )}
 
-                                {/* For non-online quizzes and all other types: marks table */}
+                                {/* Online assignment: show quiz builder for open-ended questions */}
+                                {a.is_online_quiz && a.assessment_type === 'assignment' && (
+                                  <QuizBuilder
+                                    assessmentId={a.id}
+                                    totalMarks={a.total_marks}
+                                    existingQuestions={questionsMap[a.id] || []}
+                                    onSaved={() => fetchQuestions(a.id)}
+                                  />
+                                )}
+
+                                {/* For non-online: marks table */}
                                 {!a.is_online_quiz && renderMarksTable(a)}
 
                                 {/* For online quizzes that ended, show auto-graded results */}
-                                {a.is_online_quiz && getScheduleStatus(a) === 'ended' && (
+                                {a.is_online_quiz && a.assessment_type === 'quiz' && getScheduleStatus(a) === 'ended' && (
                                   <div className="pt-4 border-t border-border/50">
                                     <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
                                     <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
+                                  </div>
+                                )}
+
+                                {/* For online assignments: marks table for manual grading */}
+                                {a.is_online_quiz && a.assessment_type === 'assignment' && (
+                                  <div className="pt-4 border-t border-border/50">
+                                    <h4 className="font-semibold text-sm mb-2">Student Submissions</h4>
+                                    <p className="text-xs text-muted-foreground mb-3">Review student answers and assign marks manually.</p>
+                                    {renderMarksTable(a)}
                                   </div>
                                 )}
                               </div>
