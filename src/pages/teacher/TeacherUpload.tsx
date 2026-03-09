@@ -1,21 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { TeacherLayout } from "@/components/TeacherLayout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { QuizBuilder } from "@/components/QuizBuilder";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Upload, FileText, ClipboardList, BookOpen,
   GraduationCap, ChevronDown, ChevronRight, Eye, Paperclip, UserPlus,
+  Clock, Wifi, CheckCircle,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 
@@ -31,6 +34,10 @@ interface Assessment {
   total_marks: number;
   file_path: string | null;
   created_at: string;
+  schedule_start: string | null;
+  schedule_end: string | null;
+  is_online_quiz: boolean;
+  is_marks_finalized: boolean;
 }
 
 interface StudentMark {
@@ -41,6 +48,18 @@ interface StudentMark {
   marks_obtained: number | null;
   remarks: string | null;
   submission_file_path: string | null;
+}
+
+interface QuizQuestion {
+  id: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: 'a' | 'b' | 'c' | 'd';
+  marks: number;
+  question_order: number;
 }
 
 const courses = [
@@ -74,13 +93,19 @@ const TeacherUpload = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [marksMap, setMarksMap] = useState<Record<string, StudentMark[]>>({});
+  const [questionsMap, setQuestionsMap] = useState<Record<string, QuizQuestion[]>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Create dialog state
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newTotalMarks, setNewTotalMarks] = useState('100');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [newIsOnlineQuiz, setNewIsOnlineQuiz] = useState(false);
+  const [newScheduleStart, setNewScheduleStart] = useState('');
+  const [newScheduleEnd, setNewScheduleEnd] = useState('');
 
   // Add student dialog
   const [addStudentOpen, setAddStudentOpen] = useState(false);
@@ -101,11 +126,8 @@ const TeacherUpload = () => {
       .eq('assessment_type', activeTab)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      toast.error('Failed to load assessments');
-    } else {
-      setAssessments((data as Assessment[]) || []);
-    }
+    if (error) toast.error('Failed to load assessments');
+    else setAssessments((data as Assessment[]) || []);
     setLoading(false);
   }, [selectedCourse, activeTab]);
 
@@ -113,6 +135,7 @@ const TeacherUpload = () => {
     fetchAssessments();
     setExpandedId(null);
     setMarksMap({});
+    setQuestionsMap({});
   }, [fetchAssessments]);
 
   useEffect(() => {
@@ -123,28 +146,34 @@ const TeacherUpload = () => {
   }, [assessments, activeTab]);
 
   const fetchMarks = async (assessmentId: string) => {
-    const { data, error } = await supabase
-      .from('student_marks')
-      .select('*')
-      .eq('assessment_id', assessmentId)
-      .order('student_roll_number', { ascending: true });
+    const { data } = await supabase.from('student_marks').select('*')
+      .eq('assessment_id', assessmentId).order('student_roll_number');
+    setMarksMap(prev => ({ ...prev, [assessmentId]: (data as StudentMark[]) || [] }));
+  };
 
-    if (error) {
-      toast.error('Failed to load student data');
+  const fetchQuestions = async (assessmentId: string) => {
+    const { data } = await supabase.from('quiz_questions').select('*')
+      .eq('assessment_id', assessmentId).order('question_order');
+    setQuestionsMap(prev => ({ ...prev, [assessmentId]: (data as QuizQuestion[]) || [] }));
+  };
+
+  const toggleExpand = (a: Assessment) => {
+    if (expandedId === a.id) {
+      setExpandedId(null);
     } else {
-      setMarksMap(prev => ({ ...prev, [assessmentId]: (data as StudentMark[]) || [] }));
+      setExpandedId(a.id);
+      if (!marksMap[a.id]) fetchMarks(a.id);
+      if (a.is_online_quiz && !questionsMap[a.id]) fetchQuestions(a.id);
     }
   };
 
-  const toggleExpand = (assessmentId: string) => {
-    if (expandedId === assessmentId) {
-      setExpandedId(null);
-    } else {
-      setExpandedId(assessmentId);
-      if (!marksMap[assessmentId]) {
-        fetchMarks(assessmentId);
-      }
-    }
+  const resetCreateForm = () => {
+    setNewTitle('');
+    setNewTotalMarks('100');
+    setNewFile(null);
+    setNewIsOnlineQuiz(false);
+    setNewScheduleStart('');
+    setNewScheduleEnd('');
   };
 
   const handleCreate = async () => {
@@ -152,22 +181,30 @@ const TeacherUpload = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Not authenticated'); return; }
 
+    // Validate schedule for online quizzes
+    if (newIsOnlineQuiz && (!newScheduleStart || !newScheduleEnd)) {
+      toast.error('Schedule start and end times are required for online quizzes');
+      return;
+    }
+    if (newIsOnlineQuiz && new Date(newScheduleStart) >= new Date(newScheduleEnd)) {
+      toast.error('Schedule end must be after start');
+      return;
+    }
+
+    // Validate PDF required for midterms/finals
+    if ((activeTab === 'midterm' || activeTab === 'final') && !newFile) {
+      toast.error('PDF upload is required for midterms and finals');
+      return;
+    }
+
     setUploading(true);
     let filePath: string | null = null;
 
-    // Upload PDF if provided
     if (newFile) {
       const ext = newFile.name.split('.').pop();
       const path = `${user.id}/${Date.now()}-${newTitle.trim().replace(/\s+/g, '-')}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('assessments')
-        .upload(path, newFile, { contentType: newFile.type });
-
-      if (uploadError) {
-        toast.error('Failed to upload file');
-        setUploading(false);
-        return;
-      }
+      const { error: uploadError } = await supabase.storage.from('assessments').upload(path, newFile, { contentType: newFile.type });
+      if (uploadError) { toast.error('Failed to upload file'); setUploading(false); return; }
       filePath = path;
     }
 
@@ -179,79 +216,68 @@ const TeacherUpload = () => {
       title: newTitle.trim(),
       total_marks: parseInt(newTotalMarks) || 100,
       file_path: filePath,
+      is_online_quiz: activeTab === 'quiz' && newIsOnlineQuiz,
+      schedule_start: newIsOnlineQuiz ? newScheduleStart : null,
+      schedule_end: newIsOnlineQuiz ? newScheduleEnd : null,
+      is_marks_finalized: false,
     }).select().single();
 
-    if (error) {
-      toast.error('Failed to create assessment');
-      setUploading(false);
-      return;
+    if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
+
+    // For non-online quizzes and assignments, add default students
+    if (!(activeTab === 'quiz' && newIsOnlineQuiz)) {
+      const studentRows = defaultStudents.map(s => ({
+        assessment_id: (data as Assessment).id,
+        student_name: s.name,
+        student_roll_number: s.roll,
+        marks_obtained: null,
+        remarks: null,
+      }));
+      await supabase.from('student_marks').insert(studentRows);
     }
 
-    const assessment = data as Assessment;
-
-    // Insert default students
-    const studentRows = defaultStudents.map(s => ({
-      assessment_id: assessment.id,
-      student_name: s.name,
-      student_roll_number: s.roll,
-      marks_obtained: null,
-      remarks: null,
-      submission_file_path: null,
-    }));
-    await supabase.from('student_marks').insert(studentRows);
-
     toast.success('Assessment created');
-    setNewTitle('');
-    setNewTotalMarks('100');
-    setNewFile(null);
+    resetCreateForm();
     setCreateOpen(false);
     setUploading(false);
     fetchAssessments();
   };
 
   const handleDelete = async (id: string) => {
-    const assessment = assessments.find(a => a.id === id);
-    // Delete storage file if exists
-    if (assessment?.file_path) {
-      await supabase.storage.from('assessments').remove([assessment.file_path]);
-    }
+    const a = assessments.find(x => x.id === id);
+    if (a?.file_path) await supabase.storage.from('assessments').remove([a.file_path]);
     const { error } = await supabase.from('assessments').delete().eq('id', id);
-    if (error) {
-      toast.error('Failed to delete');
-    } else {
+    if (error) toast.error('Failed to delete');
+    else {
       toast.success('Assessment deleted');
       if (expandedId === id) setExpandedId(null);
       fetchAssessments();
     }
   };
 
-  const updateLocalMark = (assessmentId: string, markId: string, field: keyof StudentMark, value: string) => {
+  const updateLocalMark = (assessmentId: string, markId: string, field: string, value: string) => {
     setMarksMap(prev => ({
       ...prev,
       [assessmentId]: (prev[assessmentId] || []).map(m => {
         if (m.id !== markId) return m;
-        if (field === 'marks_obtained') {
-          return { ...m, marks_obtained: value === '' ? null : parseFloat(value) };
-        }
+        if (field === 'marks_obtained') return { ...m, marks_obtained: value === '' ? null : parseFloat(value) };
         return { ...m, [field]: value || null };
       }),
     }));
   };
 
   const handleSaveMarks = async (assessment: Assessment) => {
-    const assessmentMarks = marksMap[assessment.id] || [];
+    const marks = marksMap[assessment.id] || [];
     setSaving(true);
-
-    for (const mark of assessmentMarks) {
+    for (const mark of marks) {
       if (mark.marks_obtained !== null && (mark.marks_obtained < 0 || mark.marks_obtained > assessment.total_marks)) {
-        toast.error(`Invalid marks for ${mark.student_name}: must be 0-${assessment.total_marks}`);
+        toast.error(`Marks for ${mark.student_name} must be 0–${assessment.total_marks}`);
         setSaving(false);
         return;
       }
     }
-
     let hasError = false;
-    for (const mark of assessmentMarks) {
+    for (const mark of marks) {
       const { error } = await supabase.from('student_marks').update({
         marks_obtained: mark.marks_obtained,
         remarks: mark.remarks,
@@ -259,9 +285,19 @@ const TeacherUpload = () => {
       }).eq('id', mark.id);
       if (error) hasError = true;
     }
-
     toast[hasError ? 'error' : 'success'](hasError ? 'Some marks failed to save' : 'All marks saved');
     setSaving(false);
+  };
+
+  const handleFinalizeMarks = async (assessment: Assessment) => {
+    // First save, then finalize
+    await handleSaveMarks(assessment);
+    const { error } = await supabase.from('assessments').update({ is_marks_finalized: true }).eq('id', assessment.id);
+    if (error) toast.error('Failed to finalize');
+    else {
+      toast.success('Marks finalized');
+      fetchAssessments();
+    }
   };
 
   const getFileUrl = (path: string) => {
@@ -269,58 +305,230 @@ const TeacherUpload = () => {
     return data.publicUrl;
   };
 
-  // Add student (manual / hard copy)
   const handleAddStudent = async () => {
     if (!addStudentName.trim() || !addStudentRoll.trim() || !addStudentAssessmentId) {
-      toast.error('Name and roll number are required');
-      return;
+      toast.error('Name and roll number are required'); return;
     }
-
     const { data, error } = await supabase.from('student_marks').insert({
       assessment_id: addStudentAssessmentId,
       student_name: addStudentName.trim(),
       student_roll_number: addStudentRoll.trim(),
       marks_obtained: null,
       remarks: addStudentIsHardCopy ? 'Hard copy submission' : null,
-      submission_file_path: null,
     }).select().single();
-
     if (error) {
-      if (error.code === '23505') {
-        toast.error('This roll number already exists for this assessment');
-      } else {
-        toast.error('Failed to add student');
-      }
+      toast.error(error.code === '23505' ? 'Roll number already exists' : 'Failed to add student');
       return;
     }
-
     setMarksMap(prev => ({
       ...prev,
-      [addStudentAssessmentId]: [...(prev[addStudentAssessmentId] || []), data as StudentMark],
+      [addStudentAssessmentId!]: [...(prev[addStudentAssessmentId!] || []), data as StudentMark],
     }));
-
     toast.success('Student added');
-    setAddStudentName('');
-    setAddStudentRoll('');
-    setAddStudentIsHardCopy(false);
-    setAddStudentOpen(false);
+    setAddStudentName(''); setAddStudentRoll(''); setAddStudentIsHardCopy(false); setAddStudentOpen(false);
   };
 
   const handleDeleteMark = async (assessmentId: string, markId: string) => {
     const { error } = await supabase.from('student_marks').delete().eq('id', markId);
-    if (error) {
-      toast.error('Failed to remove student');
-    } else {
-      setMarksMap(prev => ({
-        ...prev,
-        [assessmentId]: (prev[assessmentId] || []).filter(m => m.id !== markId),
-      }));
-    }
+    if (!error) setMarksMap(prev => ({ ...prev, [assessmentId]: (prev[assessmentId] || []).filter(m => m.id !== markId) }));
   };
 
-  const submissionCount = (assessmentId: string) => {
-    const marks = marksMap[assessmentId] || [];
-    return marks.filter(m => m.submission_file_path || m.remarks?.includes('Hard copy')).length;
+  const getScheduleStatus = (a: Assessment) => {
+    if (!a.schedule_start || !a.schedule_end) return null;
+    const now = new Date();
+    const start = new Date(a.schedule_start);
+    const end = new Date(a.schedule_end);
+    if (now < start) return 'scheduled';
+    if (now >= start && now <= end) return 'live';
+    return 'ended';
+  };
+
+  const formatDateTime = (iso: string) => {
+    return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Render helpers
+  const renderCreateDialog = (tabLabel: string) => {
+    const singular = tabLabel.slice(0, -1);
+    const isQuizTab = activeTab === 'quiz';
+    const isExamTab = activeTab === 'midterm' || activeTab === 'final';
+
+    return (
+      <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-2 rounded-xl">
+            <Plus className="w-4 h-4" /> New {singular}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create {singular}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={`e.g. ${singular} 1`} className="rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Marks</Label>
+              <Input type="number" value={newTotalMarks} onChange={e => setNewTotalMarks(e.target.value)} placeholder="100" className="rounded-xl" />
+            </div>
+
+            {/* Online quiz toggle (quiz tab only) */}
+            {isQuizTab && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
+                <div>
+                  <Label className="text-sm font-medium">Online Quiz</Label>
+                  <p className="text-xs text-muted-foreground">Students take this quiz in-app</p>
+                </div>
+                <Switch checked={newIsOnlineQuiz} onCheckedChange={setNewIsOnlineQuiz} />
+              </div>
+            )}
+
+            {/* Schedule (online quiz or exam) */}
+            {(newIsOnlineQuiz || isExamTab) && (
+              <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                <Label className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="w-4 h-4" /> Schedule
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Start</Label>
+                    <Input type="datetime-local" value={newScheduleStart} onChange={e => setNewScheduleStart(e.target.value)} className="rounded-lg text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">End</Label>
+                    <Input type="datetime-local" value={newScheduleEnd} onChange={e => setNewScheduleEnd(e.target.value)} className="rounded-lg text-sm" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* File upload */}
+            <div className="space-y-2">
+              <Label>
+                Upload PDF
+                {isExamTab ? <span className="text-destructive text-xs ml-1">*required</span> : <span className="text-muted-foreground text-xs ml-1">(optional)</span>}
+              </Label>
+              <Input type="file" accept=".pdf,.doc,.docx" onChange={e => setNewFile(e.target.files?.[0] || null)} className="rounded-xl" />
+              {newFile && <p className="text-xs text-muted-foreground flex items-center gap-1"><Paperclip className="w-3 h-3" /> {newFile.name}</p>}
+            </div>
+
+            <Button onClick={handleCreate} disabled={uploading} className="w-full rounded-xl">
+              {uploading ? 'Creating...' : 'Create'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const renderMarksTable = (a: Assessment) => {
+    const marks = marksMap[a.id] || [];
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-sm text-muted-foreground">{marks.length} students</p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1 rounded-xl"
+              onClick={() => { setAddStudentAssessmentId(a.id); setAddStudentOpen(true); }}>
+              <UserPlus className="w-4 h-4" /> Add Student
+            </Button>
+            <Button size="sm" onClick={() => handleSaveMarks(a)} disabled={saving} className="gap-1 rounded-xl">
+              <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save All'}
+            </Button>
+            {(a.assessment_type === 'midterm' || a.assessment_type === 'final') && !a.is_marks_finalized && (
+              <Button size="sm" variant="default" onClick={() => handleFinalizeMarks(a)} className="gap-1 rounded-xl">
+                <CheckCircle className="w-4 h-4" /> Finalize
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead>Roll Number</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead className="w-[120px]">Marks (/{a.total_marks})</TableHead>
+                {a.assessment_type === 'assignment' && <TableHead>Submission</TableHead>}
+                <TableHead>Remarks</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {marks.map((mark, i) => (
+                <TableRow key={mark.id}>
+                  <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                  <TableCell className="font-mono text-xs">{mark.student_roll_number}</TableCell>
+                  <TableCell className="text-sm">{mark.student_name}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={a.total_marks}
+                      value={mark.marks_obtained ?? ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (val !== '' && parseFloat(val) > a.total_marks) {
+                          toast.error(`Maximum marks: ${a.total_marks}`);
+                          return;
+                        }
+                        updateLocalMark(a.id, mark.id, 'marks_obtained', val);
+                      }}
+                      className="h-8 w-20 rounded-lg text-center text-sm"
+                      placeholder="—"
+                      disabled={a.is_marks_finalized}
+                    />
+                  </TableCell>
+                  {a.assessment_type === 'assignment' && (
+                    <TableCell>
+                      {mark.submission_file_path ? (
+                        <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" asChild>
+                          <a href={getFileUrl(mark.submission_file_path)} target="_blank" rel="noopener noreferrer">
+                            <Eye className="w-3 h-3" /> View
+                          </a>
+                        </Button>
+                      ) : mark.remarks?.includes('Hard copy') ? (
+                        <Badge variant="secondary" className="text-xs">Hard Copy</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not submitted</span>
+                      )}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <Input
+                      value={mark.remarks ?? ''}
+                      onChange={e => updateLocalMark(a.id, mark.id, 'remarks', e.target.value)}
+                      className="h-8 rounded-lg text-sm"
+                      placeholder="Optional"
+                      disabled={a.is_marks_finalized}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {!a.is_marks_finalized && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                        onClick={() => handleDeleteMark(a.id, mark.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {marks.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={a.assessment_type === 'assignment' ? 7 : 6} className="text-center py-8 text-muted-foreground text-sm">
+                    No students yet. Click "Add Student" to begin.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -365,48 +573,9 @@ const TeacherUpload = () => {
 
             {tabConfig.map(t => (
               <TabsContent key={t.value} value={t.value} className="space-y-4 mt-4">
-                {/* Header Row */}
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">{t.label} for {courseName}</h2>
-                  <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2 rounded-xl">
-                        <Plus className="w-4 h-4" /> New {t.label.slice(0, -1)}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Create {t.label.slice(0, -1)}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-2">
-                        <div className="space-y-2">
-                          <Label>Title</Label>
-                          <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={`e.g. ${t.label.slice(0, -1)} 1`} className="rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Total Marks</Label>
-                          <Input type="number" value={newTotalMarks} onChange={e => setNewTotalMarks(e.target.value)} placeholder="100" className="rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Upload PDF <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                          <Input
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={e => setNewFile(e.target.files?.[0] || null)}
-                            className="rounded-xl"
-                          />
-                          {newFile && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Paperclip className="w-3 h-3" /> {newFile.name}
-                            </p>
-                          )}
-                        </div>
-                        <Button onClick={handleCreate} disabled={uploading} className="w-full rounded-xl">
-                          {uploading ? 'Uploading...' : 'Create'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  {renderCreateDialog(t.label)}
                 </div>
 
                 {loading ? (
@@ -415,19 +584,17 @@ const TeacherUpload = () => {
                   <Card className="animate-card backdrop-blur border border-border/50 bg-card/80">
                     <CardContent className="py-12 text-center text-muted-foreground">
                       <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                      <p>No {t.label.toLowerCase()} created yet for this course.</p>
-                      <p className="text-sm mt-1">Click "New {t.label.slice(0, -1)}" to get started.</p>
+                      <p>No {t.label.toLowerCase()} created yet.</p>
                     </CardContent>
                   </Card>
                 ) : (
                   <div className="space-y-3">
                     {assessments.map(a => {
                       const isExpanded = expandedId === a.id;
-                      const marks = marksMap[a.id] || [];
-                      const subs = submissionCount(a.id);
+                      const scheduleStatus = getScheduleStatus(a);
 
                       return (
-                        <Collapsible key={a.id} open={isExpanded} onOpenChange={() => toggleExpand(a.id)}>
+                        <Collapsible key={a.id} open={isExpanded} onOpenChange={() => toggleExpand(a)}>
                           <Card className={`animate-card backdrop-blur border transition-all duration-200 ${isExpanded ? 'border-primary/50 bg-primary/5 shadow-lg' : 'border-border/50 bg-card/80 hover:shadow-md'}`}>
                             <CollapsibleTrigger asChild>
                               <CardContent className="p-4 cursor-pointer">
@@ -438,127 +605,59 @@ const TeacherUpload = () => {
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="font-semibold">{a.title}</h3>
                                         <Badge variant="outline" className="text-xs">{a.total_marks} marks</Badge>
-                                        {a.file_path && (
-                                          <Badge variant="secondary" className="text-xs gap-1">
-                                            <Paperclip className="w-3 h-3" /> PDF
-                                          </Badge>
-                                        )}
-                                        {isExpanded && subs > 0 && (
-                                          <Badge className="text-xs">{subs} submission{subs > 1 ? 's' : ''}</Badge>
-                                        )}
+                                        {a.file_path && <Badge variant="secondary" className="text-xs gap-1"><Paperclip className="w-3 h-3" /> PDF</Badge>}
+                                        {a.is_online_quiz && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online</Badge>}
+                                        {scheduleStatus === 'live' && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0">● Live</Badge>}
+                                        {scheduleStatus === 'scheduled' && <Badge variant="secondary" className="text-xs gap-1"><Clock className="w-3 h-3" /> Scheduled</Badge>}
+                                        {scheduleStatus === 'ended' && <Badge variant="secondary" className="text-xs">Ended</Badge>}
+                                        {a.is_marks_finalized && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0"><CheckCircle className="w-3 h-3" /> Finalized</Badge>}
                                       </div>
                                       <p className="text-xs text-muted-foreground mt-0.5">
                                         {new Date(a.created_at).toLocaleDateString()}
+                                        {a.schedule_start && a.schedule_end && (
+                                          <span> • {formatDateTime(a.schedule_start)} – {formatDateTime(a.schedule_end)}</span>
+                                        )}
                                       </p>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                                     {a.file_path && (
                                       <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                        <a href={getFileUrl(a.file_path)} target="_blank" rel="noopener noreferrer">
-                                          <Eye className="w-4 h-4" />
-                                        </a>
+                                        <a href={getFileUrl(a.file_path)} target="_blank" rel="noopener noreferrer"><Eye className="w-4 h-4" /></a>
                                       </Button>
                                     )}
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => handleDelete(a.id)}>
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                      onClick={() => handleDelete(a.id)}><Trash2 className="w-4 h-4" /></Button>
                                   </div>
                                 </div>
                               </CardContent>
                             </CollapsibleTrigger>
 
                             <CollapsibleContent>
-                              <div className="px-4 pb-4 space-y-3">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                  <p className="text-sm text-muted-foreground">
-                                    {marks.length} students
-                                  </p>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" className="gap-1 rounded-xl"
-                                      onClick={() => {
-                                        setAddStudentAssessmentId(a.id);
-                                        setAddStudentOpen(true);
-                                      }}>
-                                      <UserPlus className="w-4 h-4" /> Add Student
-                                    </Button>
-                                    <Button size="sm" onClick={() => handleSaveMarks(a)} disabled={saving} className="gap-1 rounded-xl">
-                                      <Save className="w-4 h-4" />
-                                      {saving ? 'Saving...' : 'Save All'}
-                                    </Button>
-                                  </div>
-                                </div>
+                              <div className="px-4 pb-4 space-y-4">
+                                {/* Online quiz: show quiz builder */}
+                                {a.is_online_quiz && (
+                                  <QuizBuilder
+                                    assessmentId={a.id}
+                                    totalMarks={a.total_marks}
+                                    existingQuestions={questionsMap[a.id]?.map(q => ({
+                                      ...q,
+                                      correct_option: q.correct_option as 'a' | 'b' | 'c' | 'd',
+                                    }))}
+                                    onSaved={() => fetchQuestions(a.id)}
+                                  />
+                                )}
 
-                                <div className="rounded-xl border overflow-hidden">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="w-[50px]">#</TableHead>
-                                        <TableHead>Roll Number</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead className="w-[100px]">Marks</TableHead>
-                                        <TableHead>Submission</TableHead>
-                                        <TableHead>Remarks</TableHead>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {marks.map((mark, i) => (
-                                        <TableRow key={mark.id}>
-                                          <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
-                                          <TableCell className="font-mono text-xs">{mark.student_roll_number}</TableCell>
-                                          <TableCell className="text-sm">{mark.student_name}</TableCell>
-                                          <TableCell>
-                                            <Input
-                                              type="number"
-                                              min={0}
-                                              max={a.total_marks}
-                                              value={mark.marks_obtained ?? ''}
-                                              onChange={e => updateLocalMark(a.id, mark.id, 'marks_obtained', e.target.value)}
-                                              className="h-8 w-20 rounded-lg text-center text-sm"
-                                              placeholder="—"
-                                            />
-                                          </TableCell>
-                                          <TableCell>
-                                            {mark.submission_file_path ? (
-                                              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" asChild>
-                                                <a href={getFileUrl(mark.submission_file_path)} target="_blank" rel="noopener noreferrer">
-                                                  <Eye className="w-3 h-3" /> View
-                                                </a>
-                                              </Button>
-                                            ) : mark.remarks?.includes('Hard copy') ? (
-                                              <Badge variant="secondary" className="text-xs">Hard Copy</Badge>
-                                            ) : (
-                                              <span className="text-xs text-muted-foreground">Not submitted</span>
-                                            )}
-                                          </TableCell>
-                                          <TableCell>
-                                            <Input
-                                              value={mark.remarks ?? ''}
-                                              onChange={e => updateLocalMark(a.id, mark.id, 'remarks', e.target.value)}
-                                              className="h-8 rounded-lg text-sm"
-                                              placeholder="Optional"
-                                            />
-                                          </TableCell>
-                                          <TableCell>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                                              onClick={() => handleDeleteMark(a.id, mark.id)}>
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))}
-                                      {marks.length === 0 && (
-                                        <TableRow>
-                                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground text-sm">
-                                            No students yet. Click "Add Student" to begin.
-                                          </TableCell>
-                                        </TableRow>
-                                      )}
-                                    </TableBody>
-                                  </Table>
-                                </div>
+                                {/* For non-online quizzes and all other types: marks table */}
+                                {!a.is_online_quiz && renderMarksTable(a)}
+
+                                {/* For exams that ended but marks not finalized, show marks entry */}
+                                {a.is_online_quiz && scheduleStatus === 'ended' && (
+                                  <div className="pt-4 border-t border-border/50">
+                                    <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
+                                    <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
+                                  </div>
+                                )}
                               </div>
                             </CollapsibleContent>
                           </Card>
@@ -576,9 +675,7 @@ const TeacherUpload = () => {
       {/* Add Student Dialog */}
       <Dialog open={addStudentOpen} onOpenChange={setAddStudentOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Student</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Add Student</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
               <Label>Student Name</Label>
@@ -589,13 +686,7 @@ const TeacherUpload = () => {
               <Input value={addStudentRoll} onChange={e => setAddStudentRoll(e.target.value)} placeholder="e.g. SP22-BCS-009" className="rounded-xl" />
             </div>
             <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="hardcopy"
-                checked={addStudentIsHardCopy}
-                onChange={e => setAddStudentIsHardCopy(e.target.checked)}
-                className="rounded"
-              />
+              <input type="checkbox" id="hardcopy" checked={addStudentIsHardCopy} onChange={e => setAddStudentIsHardCopy(e.target.checked)} className="rounded" />
               <Label htmlFor="hardcopy" className="text-sm cursor-pointer">Hard copy submission</Label>
             </div>
             <Button onClick={handleAddStudent} className="w-full rounded-xl">Add Student</Button>
