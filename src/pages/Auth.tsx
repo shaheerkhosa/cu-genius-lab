@@ -30,6 +30,7 @@ const portalOptions = [
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [portal, setPortal] = useState("student");
+  usePortalTheme(portal as "student" | "teacher");
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
