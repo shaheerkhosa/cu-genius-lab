@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { PillToggle } from "@/components/PillToggle";
 import { z } from "zod";
+import { usePortalTheme } from "@/hooks/usePortalTheme";
 
 const signupSchema = z.object({
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters"),
@@ -29,6 +30,7 @@ const portalOptions = [
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [portal, setPortal] = useState("student");
+  usePortalTheme(portal as "student" | "teacher");
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -158,7 +160,7 @@ const Auth = () => {
   const isTeacher = portal === "teacher";
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 relative ${isTeacher ? "teacher-portal" : ""}`}>
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
       <DecorativeBackground />
 
       <Card className="w-full max-w-md relative z-10 border-2">

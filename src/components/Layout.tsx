@@ -2,12 +2,15 @@ import { ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { usePortalTheme } from "@/hooks/usePortalTheme";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  usePortalTheme("student");
+
   return (
     <ProtectedRoute>
       <SidebarProvider defaultOpen={true}>
