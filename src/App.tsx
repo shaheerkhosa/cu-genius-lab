@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
+import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
 
 const queryClient = new QueryClient();
 
