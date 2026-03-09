@@ -754,8 +754,11 @@ const TeacherUpload = () => {
                     ) : (
                       enrollments.map(e => (
                         <div key={e.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50">
-                          <span className="text-sm">{e.student_id.slice(0, 8)}...</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={() => handleUnenroll(e.id)}>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{e.student_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{e.student_email}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive shrink-0" onClick={() => handleUnenroll(e.id)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
