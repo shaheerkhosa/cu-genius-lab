@@ -13,12 +13,14 @@ import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
 import StudentQuiz from "./pages/StudentQuiz";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
 import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
 import TeacherProgress from "./pages/teacher/TeacherProgress";
 import TeacherUpload from "./pages/teacher/TeacherUpload";
+import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 
 const queryClient = new QueryClient();
 
