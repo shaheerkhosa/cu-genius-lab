@@ -1,4 +1,4 @@
-import { MessageCircle, Upload, BookOpen, TrendingUp, LogOut, Menu } from "lucide-react";
+import { MessageCircle, Upload, BookOpen, TrendingUp, LogOut, Menu, CalendarDays } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
