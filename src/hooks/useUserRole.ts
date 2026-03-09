@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useUserRole() {
-  const [role, setRole] = useState<'admin' | 'moderator' | 'user' | null>(null);
+  const [role, setRole] = useState<'admin' | 'moderator' | 'teacher' | 'user' | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,6 +15,7 @@ export function useUserRole() {
         if (!user) {
           setRole(null);
           setIsAdmin(false);
+          setIsTeacher(false);
           setLoading(false);
           return;
         }
@@ -27,20 +29,24 @@ export function useUserRole() {
 
         if (error) {
           console.error('Error fetching user role:', error);
-          setRole('user'); // Default to regular user
+          setRole('user');
           setIsAdmin(false);
+          setIsTeacher(false);
         } else if (data) {
-          const userRole = data.role as 'admin' | 'moderator' | 'user';
+          const userRole = data.role as 'admin' | 'moderator' | 'teacher' | 'user';
           setRole(userRole);
           setIsAdmin(userRole === 'admin');
+          setIsTeacher(userRole === 'teacher');
         } else {
-          setRole('user'); // No role assigned, default to user
+          setRole('user');
           setIsAdmin(false);
+          setIsTeacher(false);
         }
       } catch (err) {
         console.error('Error in fetchUserRole:', err);
         setRole('user');
         setIsAdmin(false);
+        setIsTeacher(false);
       } finally {
         setLoading(false);
       }
@@ -49,5 +55,5 @@ export function useUserRole() {
     fetchUserRole();
   }, []);
 
-  return { role, isAdmin, loading };
+  return { role, isAdmin, isTeacher, loading };
 }
