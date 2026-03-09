@@ -60,14 +60,6 @@ All colors MUST be HSL.
     --sidebar-ring: 271 91% 60%;
   }
 
-  .dark .teacher-portal {
-    --primary: 271 91% 65%;
-    --ring: 271 91% 65%;
-    --accent: 217 91% 60%;
-    --sidebar-primary: 271 91% 65%;
-    --sidebar-ring: 271 91% 65%;
-  }
-
   .dark {
     --background: 217 33% 17%;
     --foreground: 0 0% 100%;
@@ -105,6 +97,14 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 217 32% 25%;
     --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark .teacher-portal {
+    --primary: 271 91% 65%;
+    --ring: 271 91% 65%;
+    --accent: 217 91% 60%;
+    --sidebar-primary: 271 91% 65%;
+    --sidebar-ring: 271 91% 65%;
   }
 }
 
