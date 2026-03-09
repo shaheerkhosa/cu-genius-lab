@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { gsap } from 'gsap';
 
-type AssessmentType = 'quiz' | 'assignment' | 'midterm' | 'final';
+type AssessmentType = 'quiz' | 'assignment' | 'midterm' | 'final' | 'attendance';
 
 interface Assessment {
   id: string;
