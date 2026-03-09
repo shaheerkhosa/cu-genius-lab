@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 const menuItems = [
   { title: "Chat", url: "/teacher", icon: MessageCircle },
   { title: "Upload", url: "/teacher/upload", icon: Upload },
+  { title: "Schedule", url: "/teacher/schedule", icon: CalendarDays },
   { title: "Course", url: "/teacher/course", icon: BookOpen },
   { title: "Progress", url: "/teacher/progress", icon: TrendingUp },
 ];
