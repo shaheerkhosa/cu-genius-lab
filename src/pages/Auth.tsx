@@ -160,7 +160,7 @@ const Auth = () => {
   const isTeacher = portal === "teacher";
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 relative ${isTeacher ? "teacher-portal" : ""}`}>
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
       <DecorativeBackground />
 
       <Card className="w-full max-w-md relative z-10 border-2">
