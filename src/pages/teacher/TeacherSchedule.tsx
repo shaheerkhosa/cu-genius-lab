@@ -13,13 +13,7 @@ import { format, isPast, parseISO, isToday, isTomorrow, isThisWeek } from 'date-
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const courses = [
-  { code: 'ALL', name: 'All Courses' },
-  { code: 'CS403', name: 'Computer Networks' },
-  { code: 'CS401', name: 'Software Engineering' },
-  { code: 'CS402', name: 'Operating Systems' },
-  { code: 'CS404', name: 'Artificial Intelligence' },
-];
+// No more hardcoded courses - we pull from teacher_courses
 
 const typeIcons: Record<string, React.ReactNode> = {
   quiz: <ClipboardList className="w-4 h-4" />,
