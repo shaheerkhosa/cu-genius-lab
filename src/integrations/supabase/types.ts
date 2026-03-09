@@ -146,6 +146,36 @@ export type Database = {
         }
         Relationships: []
       }
+      courses: {
+        Row: {
+          course_code: string
+          course_name: string
+          created_at: string | null
+          credits: number
+          department: string
+          id: string
+          semester_number: number
+        }
+        Insert: {
+          course_code: string
+          course_name: string
+          created_at?: string | null
+          credits?: number
+          department?: string
+          id?: string
+          semester_number: number
+        }
+        Update: {
+          course_code?: string
+          course_name?: string
+          created_at?: string | null
+          credits?: number
+          department?: string
+          id?: string
+          semester_number?: number
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           admin_notes: string | null
