@@ -22,6 +22,10 @@ export type Database = {
           created_at: string
           file_path: string | null
           id: string
+          is_marks_finalized: boolean
+          is_online_quiz: boolean
+          schedule_end: string | null
+          schedule_start: string | null
           teacher_id: string
           title: string
           total_marks: number
@@ -34,6 +38,10 @@ export type Database = {
           created_at?: string
           file_path?: string | null
           id?: string
+          is_marks_finalized?: boolean
+          is_online_quiz?: boolean
+          schedule_end?: string | null
+          schedule_start?: string | null
           teacher_id: string
           title: string
           total_marks?: number
@@ -46,6 +54,10 @@ export type Database = {
           created_at?: string
           file_path?: string | null
           id?: string
+          is_marks_finalized?: boolean
+          is_online_quiz?: boolean
+          schedule_end?: string | null
+          schedule_start?: string | null
           teacher_id?: string
           title?: string
           total_marks?: number
@@ -236,6 +248,139 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          assessment_id: string
+          completed_at: string | null
+          id: string
+          score: number | null
+          started_at: string
+          student_id: string
+          total_marks: number | null
+        }
+        Insert: {
+          assessment_id: string
+          completed_at?: string | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          student_id: string
+          total_marks?: number | null
+        }
+        Update: {
+          assessment_id?: string
+          completed_at?: string | null
+          id?: string
+          score?: number | null
+          started_at?: string
+          student_id?: string
+          total_marks?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          assessment_id: string
+          correct_option: string
+          created_at: string
+          id: string
+          marks: number
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order: number
+          question_text: string
+        }
+        Insert: {
+          assessment_id: string
+          correct_option: string
+          created_at?: string
+          id?: string
+          marks?: number
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order?: number
+          question_text: string
+        }
+        Update: {
+          assessment_id?: string
+          correct_option?: string
+          created_at?: string
+          id?: string
+          marks?: number
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question_order?: number
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_responses: {
+        Row: {
+          assessment_id: string
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          selected_option: string | null
+          student_id: string
+          submitted_at: string
+        }
+        Insert: {
+          assessment_id: string
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          selected_option?: string | null
+          student_id: string
+          submitted_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          selected_option?: string | null
+          student_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_responses_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_marks: {
         Row: {
