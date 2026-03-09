@@ -1,4 +1,4 @@
-import { MessageCircle, ClipboardCheck, Flag, BookOpen, TrendingUp, LogOut, Menu } from "lucide-react";
+import { MessageCircle, Upload, BookOpen, TrendingUp, LogOut, Menu } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -19,8 +19,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const menuItems = [
   { title: "Chat", url: "/teacher", icon: MessageCircle },
-  { title: "Audit", url: "/teacher/audit", icon: ClipboardCheck },
-  { title: "Flag Docs", url: "/teacher/flag-docs", icon: Flag },
+  { title: "Upload", url: "/teacher/upload", icon: Upload },
   { title: "Course", url: "/teacher/course", icon: BookOpen },
   { title: "Progress", url: "/teacher/progress", icon: TrendingUp },
 ];
