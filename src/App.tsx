@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
+import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +40,7 @@ const App = () => (
             <Route path="/teacher" element={<TeacherDashboard />} />
             <Route path="/teacher/audit" element={<TeacherPlaceholder title="Audit" />} />
             <Route path="/teacher/flag-docs" element={<TeacherPlaceholder title="Flag Documents" />} />
-            <Route path="/teacher/course" element={<TeacherPlaceholder title="Course Management" />} />
+            <Route path="/teacher/course" element={<TeacherStudyGuide />} />
             <Route path="/teacher/progress" element={<TeacherPlaceholder title="Student Progress" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
