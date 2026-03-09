@@ -3,17 +3,14 @@ import { TeacherLayout } from "@/components/TeacherLayout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PillToggle } from "@/components/PillToggle";
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Calendar, Clock, FileText, ClipboardList, BookOpen, GraduationCap, CalendarDays, Plus, Trash2 } from 'lucide-react';
+import { Calendar, Clock, FileText, ClipboardList, BookOpen, GraduationCap, CalendarDays } from 'lucide-react';
 import { gsap } from 'gsap';
 import { format, isPast, parseISO, isToday, isTomorrow, isThisWeek } from 'date-fns';
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const courses = [
   { code: 'ALL', name: 'All Courses' },
@@ -22,8 +19,6 @@ const courses = [
   { code: 'CS402', name: 'Operating Systems' },
   { code: 'CS404', name: 'Artificial Intelligence' },
 ];
-
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const typeIcons: Record<string, React.ReactNode> = {
   quiz: <ClipboardList className="w-4 h-4" />,
@@ -50,34 +45,27 @@ const TeacherSchedule = () => {
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Add slot dialog
-  const [addOpen, setAddOpen] = useState(false);
-  const [slotCourse, setSlotCourse] = useState('CS403');
-  const [slotDay, setSlotDay] = useState('1');
-  const [slotStart, setSlotStart] = useState('09:00');
-  const [slotEnd, setSlotEnd] = useState('10:30');
-  const [slotRoom, setSlotRoom] = useState('');
-
   useEffect(() => {
-    if (view === 'history') {
-      const fetchAll = async () => {
-        setLoading(true);
+    const fetchData = async () => {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
+      if (view === 'timetable') {
+        // Show only slots assigned to this teacher
+        const { data } = await supabase.from('timetable').select('*')
+          .eq('teacher_id', user.id)
+          .order('day_of_week').order('start_time');
+        setTimetable((data as TimetableSlot[]) || []);
+      } else {
         let query = supabase.from('assessments').select('*').order('created_at', { ascending: false });
         if (selectedCourse !== 'ALL') query = query.eq('course_code', selectedCourse);
         const { data } = await query;
         setAssessments(data || []);
-        setLoading(false);
-      };
-      fetchAll();
-    } else {
-      const fetchTimetable = async () => {
-        setLoading(true);
-        const { data } = await supabase.from('timetable').select('*').order('day_of_week').order('start_time');
-        setTimetable((data as TimetableSlot[]) || []);
-        setLoading(false);
-      };
-      fetchTimetable();
-    }
+      }
+      setLoading(false);
+    };
+    fetchData();
   }, [view, selectedCourse]);
 
   useEffect(() => {
@@ -86,34 +74,6 @@ const TeacherSchedule = () => {
       gsap.fromTo(cards, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out' });
     }
   }, [assessments, timetable, view]);
-
-  const handleAddSlot = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const courseName = courses.find(c => c.code === slotCourse)?.name || '';
-    const { error } = await supabase.from('timetable').insert({
-      course_code: slotCourse,
-      course_name: courseName,
-      teacher_id: user.id,
-      day_of_week: parseInt(slotDay),
-      start_time: slotStart,
-      end_time: slotEnd,
-      room: slotRoom || null,
-    });
-    if (error) { toast.error('Failed to add slot'); return; }
-    toast.success('Class slot added');
-    setAddOpen(false);
-    setSlotRoom('');
-    // Refresh
-    const { data } = await supabase.from('timetable').select('*').order('day_of_week').order('start_time');
-    setTimetable((data as TimetableSlot[]) || []);
-  };
-
-  const handleDeleteSlot = async (id: string) => {
-    await supabase.from('timetable').delete().eq('id', id);
-    setTimetable(prev => prev.filter(s => s.id !== id));
-    toast.success('Slot removed');
-  };
 
   const formatTime12 = (t: string) => {
     const [h, m] = t.split(':').map(Number);
@@ -131,73 +91,22 @@ const TeacherSchedule = () => {
 
   const upcoming = assessments.filter(a => a.schedule_end && !isPast(parseISO(a.schedule_end)));
   const past = assessments.filter(a => !a.schedule_end || isPast(parseISO(a.schedule_end)));
+  const today = new Date().getDay();
 
-  // Group timetable by day
   const slotsByDay: Record<number, TimetableSlot[]> = {};
   timetable.forEach(s => {
     if (!slotsByDay[s.day_of_week]) slotsByDay[s.day_of_week] = [];
     slotsByDay[s.day_of_week].push(s);
   });
 
-  // Current day highlight
-  const today = new Date().getDay();
-
   const renderTimetable = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Weekly Timetable</h2>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2 rounded-xl"><Plus className="w-4 h-4" /> Add Class</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader><DialogTitle>Add Class Slot</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Course</Label>
-                <Select value={slotCourse} onValueChange={setSlotCourse}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {courses.filter(c => c.code !== 'ALL').map(c => (
-                      <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Day</Label>
-                <Select value={slotDay} onValueChange={setSlotDay}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DAYS.map((d, i) => <SelectItem key={i} value={String(i)}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Start Time</Label>
-                  <Input type="time" value={slotStart} onChange={e => setSlotStart(e.target.value)} className="rounded-xl" />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Time</Label>
-                  <Input type="time" value={slotEnd} onChange={e => setSlotEnd(e.target.value)} className="rounded-xl" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Room (optional)</Label>
-                <Input value={slotRoom} onChange={e => setSlotRoom(e.target.value)} placeholder="e.g. Room 301" className="rounded-xl" />
-              </div>
-              <Button onClick={handleAddSlot} className="w-full rounded-xl">Add Slot</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+      <h2 className="text-lg font-semibold">Your Weekly Timetable</h2>
       {timetable.length === 0 ? (
         <Card className="backdrop-blur border border-border/50 bg-card/80">
           <CardContent className="py-12 text-center text-muted-foreground">
             <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No class slots added yet. Click "Add Class" to build your timetable.</p>
+            <p>No classes assigned to you yet. The admin will manage your timetable.</p>
           </CardContent>
         </Card>
       ) : (
@@ -215,21 +124,15 @@ const TeacherSchedule = () => {
                   </div>
                   <div className="space-y-2">
                     {slots.map(slot => (
-                      <div key={slot.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="text-center shrink-0">
-                            <p className="text-xs font-semibold text-primary">{formatTime12(slot.start_time)}</p>
-                            <p className="text-[10px] text-muted-foreground">to {formatTime12(slot.end_time)}</p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm">{slot.course_code} — {slot.course_name}</p>
-                            {slot.room && <p className="text-xs text-muted-foreground">{slot.room}</p>}
-                          </div>
+                      <div key={slot.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
+                        <div className="text-center shrink-0">
+                          <p className="text-xs font-semibold text-primary">{formatTime12(slot.start_time)}</p>
+                          <p className="text-[10px] text-muted-foreground">to {formatTime12(slot.end_time)}</p>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive shrink-0"
-                          onClick={() => handleDeleteSlot(slot.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{slot.course_code} — {slot.course_name}</p>
+                          {slot.room && <p className="text-xs text-muted-foreground">{slot.room}</p>}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -335,7 +238,7 @@ const TeacherSchedule = () => {
               Schedule
             </div>
             <h1 className="text-4xl font-bold text-foreground">Class Schedule</h1>
-            <p className="text-muted-foreground">Manage your weekly timetable and view assessment history</p>
+            <p className="text-muted-foreground">Your weekly timetable and assessment history</p>
           </div>
 
           <div className="flex justify-center">
@@ -349,7 +252,7 @@ const TeacherSchedule = () => {
             />
           </div>
 
-          {loading && view === 'timetable' ? (
+          {loading ? (
             <div className="text-center py-12 text-muted-foreground">Loading...</div>
           ) : view === 'timetable' ? renderTimetable() : renderHistory()}
         </div>

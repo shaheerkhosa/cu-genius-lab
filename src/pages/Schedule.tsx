@@ -43,8 +43,18 @@ const Schedule = () => {
       if (!user) { setLoading(false); return; }
 
       if (view === 'timetable') {
-        const { data } = await supabase.from('timetable').select('*').order('day_of_week').order('start_time');
-        setTimetable((data as TimetableSlot[]) || []);
+        // Get enrolled courses first, then filter timetable
+        const { data: enrollments } = await supabase.from('course_enrollments').select('course_code').eq('student_id', user.id);
+        const enrolledCodes = (enrollments || []).map(e => e.course_code);
+
+        if (enrolledCodes.length > 0) {
+          const { data } = await supabase.from('timetable').select('*')
+            .in('course_code', enrolledCodes)
+            .order('day_of_week').order('start_time');
+          setTimetable((data as TimetableSlot[]) || []);
+        } else {
+          setTimetable([]);
+        }
       } else {
         const [assessRes, attRes] = await Promise.all([
           supabase.from('assessments').select('*').order('created_at', { ascending: false }),
@@ -83,7 +93,6 @@ const Schedule = () => {
   const past = assessments.filter(a => !a.schedule_end || isPast(parseISO(a.schedule_end)));
   const today = new Date().getDay();
 
-  // Attendance summary per course
   const attendanceByCourse: Record<string, { present: number; absent: number; late: number; total: number }> = {};
   attendance.forEach(a => {
     if (!attendanceByCourse[a.course_code]) attendanceByCourse[a.course_code] = { present: 0, absent: 0, late: 0, total: 0 };
@@ -93,7 +102,6 @@ const Schedule = () => {
     else if (a.status === 'late') attendanceByCourse[a.course_code].late++;
   });
 
-  // Group timetable by day
   const slotsByDay: Record<number, TimetableSlot[]> = {};
   timetable.forEach(s => {
     if (!slotsByDay[s.day_of_week]) slotsByDay[s.day_of_week] = [];
@@ -102,12 +110,12 @@ const Schedule = () => {
 
   const renderTimetable = () => (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Weekly Timetable</h2>
+      <h2 className="text-lg font-semibold">Your Weekly Timetable</h2>
       {timetable.length === 0 ? (
         <Card className="backdrop-blur border border-border/50 bg-card/80">
           <CardContent className="py-12 text-center text-muted-foreground">
             <CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No classes scheduled yet. Your teachers will add class slots to your timetable.</p>
+            <p>No classes in your timetable yet. Enroll in courses to see your schedule.</p>
           </CardContent>
         </Card>
       ) : (
@@ -148,7 +156,6 @@ const Schedule = () => {
 
   const renderHistory = () => (
     <>
-      {/* Attendance Summary */}
       {Object.keys(attendanceByCourse).length > 0 && (
         <div className="space-y-3 mb-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
