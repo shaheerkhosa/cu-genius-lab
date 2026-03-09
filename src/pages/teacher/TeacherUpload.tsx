@@ -764,10 +764,16 @@ const TeacherUpload = () => {
                                         <h3 className="font-semibold">{a.title}</h3>
                                         <Badge variant="outline" className="text-xs">{a.total_marks} marks</Badge>
                                         {a.file_path && <Badge variant="secondary" className="text-xs gap-1"><Paperclip className="w-3 h-3" /> PDF</Badge>}
-                                        {a.is_online_quiz && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online</Badge>}
-                                        {scheduleStatus === 'live' && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0">● Live</Badge>}
-                                        {scheduleStatus === 'scheduled' && <Badge variant="secondary" className="text-xs gap-1"><Clock className="w-3 h-3" /> Scheduled</Badge>}
-                                        {scheduleStatus === 'ended' && <Badge variant="secondary" className="text-xs">Ended</Badge>}
+                                        {a.is_online_quiz && a.assessment_type === 'quiz' && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online</Badge>}
+                                        {a.is_online_quiz && a.assessment_type === 'assignment' && <Badge className="text-xs gap-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 border-0"><Wifi className="w-3 h-3" /> Online Submission</Badge>}
+                                        {a.assessment_type === 'assignment' && a.schedule_end && (
+                                          <Badge variant={new Date(a.schedule_end) < new Date() ? 'destructive' : 'secondary'} className="text-xs gap-1">
+                                            <Clock className="w-3 h-3" /> Due {formatDateTime(a.schedule_end)}
+                                          </Badge>
+                                        )}
+                                        {scheduleStatus === 'live' && a.assessment_type !== 'assignment' && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0">● Live</Badge>}
+                                        {scheduleStatus === 'scheduled' && a.assessment_type !== 'assignment' && <Badge variant="secondary" className="text-xs gap-1"><Clock className="w-3 h-3" /> Scheduled</Badge>}
+                                        {scheduleStatus === 'ended' && a.assessment_type !== 'assignment' && <Badge variant="secondary" className="text-xs">Ended</Badge>}
                                         {a.is_marks_finalized && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0"><CheckCircle className="w-3 h-3" /> Finalized</Badge>}
                                       </div>
                                       <p className="text-xs text-muted-foreground mt-0.5">
