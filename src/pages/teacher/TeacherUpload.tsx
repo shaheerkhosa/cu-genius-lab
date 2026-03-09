@@ -267,16 +267,34 @@ const TeacherUpload = () => {
 
     if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
 
-    // For non-online quizzes and non-online assignments, add default students
+    // Auto-populate marks from enrolled students for non-online assessments
     if (!((isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment))) {
-      const studentRows = defaultStudents.map(s => ({
-        assessment_id: (data as Assessment).id,
-        student_name: s.name,
-        student_roll_number: s.roll,
-        marks_obtained: null,
-        remarks: null,
-      }));
-      await supabase.from('student_marks').insert(studentRows);
+      // Fetch enrolled students for this course
+      const { data: enrolled } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_code', newCourseCode);
+
+      if (enrolled && enrolled.length > 0) {
+        // Fetch profiles for enrolled students
+        const studentIds = enrolled.map(e => e.student_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', studentIds);
+
+        const studentRows = (profiles || []).map((p, i) => ({
+          assessment_id: (data as Assessment).id,
+          student_name: p.username,
+          student_roll_number: p.email,
+          student_id: p.id,
+          marks_obtained: null,
+          remarks: null,
+        }));
+        if (studentRows.length > 0) {
+          await supabase.from('student_marks').insert(studentRows);
+        }
+      }
     }
 
     toast.success('Assessment created');
