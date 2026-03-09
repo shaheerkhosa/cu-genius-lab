@@ -102,7 +102,7 @@ const TeacherProgress = () => {
     };
 
     fetchData();
-  }, [selectedCourse]);
+  }, [selectedCourse, courses]);
 
   useEffect(() => {
     if (!containerRef.current || loading) return;
