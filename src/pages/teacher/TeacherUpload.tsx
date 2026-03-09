@@ -106,7 +106,7 @@ const TeacherUpload = () => {
   const [newScheduleStart, setNewScheduleStart] = useState('');
   const [newDurationMinutes, setNewDurationMinutes] = useState('30');
   const [newDeadline, setNewDeadline] = useState('');
-  const [newCourseCode, setNewCourseCode] = useState(courses[0].code);
+  const [newCourseCode, setNewCourseCode] = useState('');
 
   // Add student dialog
   const [addStudentOpen, setAddStudentOpen] = useState(false);
