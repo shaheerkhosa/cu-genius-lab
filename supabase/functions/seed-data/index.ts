@@ -263,6 +263,15 @@ async function phaseData(supabase: any) {
   const courseTeacher: Record<string, string> = {}
   allCourses.forEach((c, idx) => { courseTeacher[c.code] = teacherIds[idx % teacherIds.length] })
 
+  // ── Insert teacher_courses mappings ──
+  const teacherCourseRows = allCourses.map(c => ({
+    teacher_id: courseTeacher[c.code],
+    course_code: c.code,
+    course_name: c.name,
+  }))
+  await batchInsert(supabase, 'teacher_courses', teacherCourseRows)
+  console.log(`Inserted ${teacherCourseRows.length} teacher-course mappings`)
+
   // ── Generate data per batch ──
   let totalEnrollments = 0, totalAssessments = 0, totalMarks = 0, totalAttendance = 0, totalTimetable = 0
 
