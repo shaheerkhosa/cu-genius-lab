@@ -551,8 +551,31 @@ const TeacherUpload = () => {
 
   const renderMarksTable = (a: Assessment) => {
     const marks = marksMap[a.id] || [];
+    const scoredMarks = marks.filter(m => m.marks_obtained !== null).map(m => m.marks_obtained as number);
+    const avg = scoredMarks.length > 0 ? (scoredMarks.reduce((s, v) => s + v, 0) / scoredMarks.length).toFixed(1) : '—';
+    const highest = scoredMarks.length > 0 ? Math.max(...scoredMarks) : '—';
+    const lowest = scoredMarks.length > 0 ? Math.min(...scoredMarks) : '—';
+
     return (
       <div className="space-y-3">
+        {/* Stats summary */}
+        {scoredMarks.length > 0 && (
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/50">
+              <span className="text-xs text-muted-foreground">Avg:</span>
+              <span className="text-sm font-semibold">{avg}/{a.total_marks}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
+              <span className="text-xs text-muted-foreground">Highest:</span>
+              <span className="text-sm font-semibold text-green-600 dark:text-green-400">{highest}/{a.total_marks}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
+              <span className="text-xs text-muted-foreground">Lowest:</span>
+              <span className="text-sm font-semibold text-red-600 dark:text-red-400">{lowest}/{a.total_marks}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">{marks.length} students</p>
           <div className="flex gap-2">
