@@ -19,8 +19,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const menuItems = [
   { title: "Chat", url: "/teacher", icon: MessageCircle },
-  { title: "Audit", url: "/teacher/audit", icon: ClipboardCheck },
-  { title: "Flag Docs", url: "/teacher/flag-docs", icon: Flag },
+  { title: "Upload", url: "/teacher/upload", icon: Upload },
   { title: "Course", url: "/teacher/course", icon: BookOpen },
   { title: "Progress", url: "/teacher/progress", icon: TrendingUp },
 ];
