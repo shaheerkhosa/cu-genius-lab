@@ -48,6 +48,7 @@ interface StudentMark {
   marks_obtained: number | null;
   remarks: string | null;
   submission_file_path: string | null;
+  student_id: string | null;
 }
 
 interface QuizQuestion {
@@ -66,7 +67,8 @@ interface Enrollment {
   id: string;
   student_id: string;
   course_code: string;
-  profiles?: { username: string; email: string };
+  student_name?: string;
+  student_email?: string;
 }
 
 const courses = [
@@ -83,16 +85,7 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
   { value: 'final', label: 'Finals', icon: <GraduationCap className="w-4 h-4" /> },
 ];
 
-const defaultStudents = [
-  { name: 'Ahmed Khan', roll: 'SP22-BCS-001' },
-  { name: 'Sara Ali', roll: 'SP22-BCS-002' },
-  { name: 'Usman Tariq', roll: 'SP22-BCS-003' },
-  { name: 'Fatima Zahra', roll: 'SP22-BCS-004' },
-  { name: 'Hassan Raza', roll: 'SP22-BCS-005' },
-  { name: 'Ayesha Noor', roll: 'SP22-BCS-006' },
-  { name: 'Bilal Saeed', roll: 'SP22-BCS-007' },
-  { name: 'Zainab Malik', roll: 'SP22-BCS-008' },
-];
+// No more hardcoded students - we pull from course_enrollments
 
 const TeacherUpload = () => {
   const [activeTab, setActiveTab] = useState<AssessmentType>('quiz');
@@ -182,7 +175,21 @@ const TeacherUpload = () => {
   const fetchEnrollments = async () => {
     const { data } = await supabase.from('course_enrollments').select('*')
       .eq('course_code', selectedCourse);
-    setEnrollments((data as Enrollment[]) || []);
+    if (!data || data.length === 0) { setEnrollments([]); return; }
+    
+    // Fetch profiles for enrolled students
+    const studentIds = data.map(e => e.student_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, username, email').in('id', studentIds);
+    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+    
+    const enriched: Enrollment[] = data.map(e => ({
+      id: e.id,
+      student_id: e.student_id,
+      course_code: e.course_code,
+      student_name: profileMap.get(e.student_id)?.username || 'Unknown',
+      student_email: profileMap.get(e.student_id)?.email || '',
+    }));
+    setEnrollments(enriched);
   };
 
   const toggleExpand = (a: Assessment) => {
@@ -275,16 +282,34 @@ const TeacherUpload = () => {
 
     if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
 
-    // For non-online quizzes and non-online assignments, add default students
+    // Auto-populate marks from enrolled students for non-online assessments
     if (!((isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment))) {
-      const studentRows = defaultStudents.map(s => ({
-        assessment_id: (data as Assessment).id,
-        student_name: s.name,
-        student_roll_number: s.roll,
-        marks_obtained: null,
-        remarks: null,
-      }));
-      await supabase.from('student_marks').insert(studentRows);
+      // Fetch enrolled students for this course
+      const { data: enrolled } = await supabase
+        .from('course_enrollments')
+        .select('student_id')
+        .eq('course_code', newCourseCode);
+
+      if (enrolled && enrolled.length > 0) {
+        // Fetch profiles for enrolled students
+        const studentIds = enrolled.map(e => e.student_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .in('id', studentIds);
+
+        const studentRows = (profiles || []).map((p, i) => ({
+          assessment_id: (data as Assessment).id,
+          student_name: p.username,
+          student_roll_number: p.email,
+          student_id: p.id,
+          marks_obtained: null,
+          remarks: null,
+        }));
+        if (studentRows.length > 0) {
+          await supabase.from('student_marks').insert(studentRows);
+        }
+      }
     }
 
     toast.success('Assessment created');
@@ -729,8 +754,11 @@ const TeacherUpload = () => {
                     ) : (
                       enrollments.map(e => (
                         <div key={e.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50">
-                          <span className="text-sm">{e.student_id.slice(0, 8)}...</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={() => handleUnenroll(e.id)}>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{e.student_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{e.student_email}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive shrink-0" onClick={() => handleUnenroll(e.id)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>

@@ -410,6 +410,7 @@ export type Database = {
           id: string
           marks_obtained: number | null
           remarks: string | null
+          student_id: string | null
           student_name: string
           student_roll_number: string
           submission_file_path: string | null
@@ -421,6 +422,7 @@ export type Database = {
           id?: string
           marks_obtained?: number | null
           remarks?: string | null
+          student_id?: string | null
           student_name: string
           student_roll_number: string
           submission_file_path?: string | null
@@ -432,6 +434,7 @@ export type Database = {
           id?: string
           marks_obtained?: number | null
           remarks?: string | null
+          student_id?: string | null
           student_name?: string
           student_roll_number?: string
           submission_file_path?: string | null
