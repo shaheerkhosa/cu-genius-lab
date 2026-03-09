@@ -84,16 +84,7 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
   { value: 'final', label: 'Finals', icon: <GraduationCap className="w-4 h-4" /> },
 ];
 
-const defaultStudents = [
-  { name: 'Ahmed Khan', roll: 'SP22-BCS-001' },
-  { name: 'Sara Ali', roll: 'SP22-BCS-002' },
-  { name: 'Usman Tariq', roll: 'SP22-BCS-003' },
-  { name: 'Fatima Zahra', roll: 'SP22-BCS-004' },
-  { name: 'Hassan Raza', roll: 'SP22-BCS-005' },
-  { name: 'Ayesha Noor', roll: 'SP22-BCS-006' },
-  { name: 'Bilal Saeed', roll: 'SP22-BCS-007' },
-  { name: 'Zainab Malik', roll: 'SP22-BCS-008' },
-];
+// No more hardcoded students - we pull from course_enrollments
 
 const TeacherUpload = () => {
   const [activeTab, setActiveTab] = useState<AssessmentType>('quiz');
