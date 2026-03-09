@@ -29,15 +29,18 @@ export function useUserRole() {
 
         if (error) {
           console.error('Error fetching user role:', error);
-          setRole('user'); // Default to regular user
+          setRole('user');
           setIsAdmin(false);
+          setIsTeacher(false);
         } else if (data) {
-          const userRole = data.role as 'admin' | 'moderator' | 'user';
+          const userRole = data.role as 'admin' | 'moderator' | 'teacher' | 'user';
           setRole(userRole);
           setIsAdmin(userRole === 'admin');
+          setIsTeacher(userRole === 'teacher');
         } else {
-          setRole('user'); // No role assigned, default to user
+          setRole('user');
           setIsAdmin(false);
+          setIsTeacher(false);
         }
       } catch (err) {
         console.error('Error in fetchUserRole:', err);
