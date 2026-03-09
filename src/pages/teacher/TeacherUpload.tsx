@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuizBuilder } from "@/components/QuizBuilder";
 import { supabase } from '@/integrations/supabase/client';
+import { useTeacherCourses } from '@/hooks/useTeacherCourses';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Upload, FileText, ClipboardList, BookOpen,
