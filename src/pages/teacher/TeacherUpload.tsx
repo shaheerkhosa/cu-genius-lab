@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuizBuilder } from "@/components/QuizBuilder";
 import { supabase } from '@/integrations/supabase/client';
+import { useTeacherCourses } from '@/hooks/useTeacherCourses';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Upload, FileText, ClipboardList, BookOpen,
@@ -71,12 +72,7 @@ interface Enrollment {
   student_email?: string;
 }
 
-const courses = [
-  { code: 'CS403', name: 'Computer Networks' },
-  { code: 'CS401', name: 'Software Engineering' },
-  { code: 'CS402', name: 'Operating Systems' },
-  { code: 'CS404', name: 'Artificial Intelligence' },
-];
+// No more hardcoded courses - we pull from teacher_courses
 
 const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }[] = [
   { value: 'quiz', label: 'Quizzes', icon: <ClipboardList className="w-4 h-4" /> },
@@ -89,8 +85,9 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
 // No more hardcoded students - we pull from course_enrollments
 
 const TeacherUpload = () => {
+  const { courses, loading: coursesLoading } = useTeacherCourses();
   const [activeTab, setActiveTab] = useState<AssessmentType>('quiz');
-  const [selectedCourse, setSelectedCourse] = useState(courses[0].code);
+  const [selectedCourse, setSelectedCourse] = useState('');
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [marksMap, setMarksMap] = useState<Record<string, StudentMark[]>>({});
@@ -109,7 +106,7 @@ const TeacherUpload = () => {
   const [newScheduleStart, setNewScheduleStart] = useState('');
   const [newDurationMinutes, setNewDurationMinutes] = useState('30');
   const [newDeadline, setNewDeadline] = useState('');
-  const [newCourseCode, setNewCourseCode] = useState(courses[0].code);
+  const [newCourseCode, setNewCourseCode] = useState('');
 
   // Add student dialog
   const [addStudentOpen, setAddStudentOpen] = useState(false);
@@ -135,6 +132,15 @@ const TeacherUpload = () => {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Set defaults when courses load
+  useEffect(() => {
+    if (courses.length > 0) {
+      if (!selectedCourse) setSelectedCourse(courses[0].code);
+      if (!newCourseCode) setNewCourseCode(courses[0].code);
+    }
+  }, [courses, selectedCourse, newCourseCode]);
+
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
 
   const computeEndTime = (start: string, durationMin: string) => {

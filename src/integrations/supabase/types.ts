@@ -510,6 +510,30 @@ export type Database = {
           },
         ]
       }
+      teacher_courses: {
+        Row: {
+          course_code: string
+          course_name: string
+          created_at: string | null
+          id: string
+          teacher_id: string
+        }
+        Insert: {
+          course_code: string
+          course_name: string
+          created_at?: string | null
+          id?: string
+          teacher_id: string
+        }
+        Update: {
+          course_code?: string
+          course_name?: string
+          created_at?: string | null
+          id?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       timetable: {
         Row: {
           course_code: string

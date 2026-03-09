@@ -236,6 +236,7 @@ async function phaseData(supabase: any) {
     await supabase.from('assessments').delete().eq('teacher_id', tid)
     await supabase.from('attendance').delete().eq('teacher_id', tid)
     await supabase.from('timetable').delete().eq('teacher_id', tid)
+    await supabase.from('teacher_courses').delete().eq('teacher_id', tid)
   }
   for (const sid of allTestIds) {
     await supabase.from('course_enrollments').delete().eq('student_id', sid)
@@ -261,6 +262,15 @@ async function phaseData(supabase: any) {
   const allCourses = Object.values(coursesBySemester).flat()
   const courseTeacher: Record<string, string> = {}
   allCourses.forEach((c, idx) => { courseTeacher[c.code] = teacherIds[idx % teacherIds.length] })
+
+  // ── Insert teacher_courses mappings ──
+  const teacherCourseRows = allCourses.map(c => ({
+    teacher_id: courseTeacher[c.code],
+    course_code: c.code,
+    course_name: c.name,
+  }))
+  await batchInsert(supabase, 'teacher_courses', teacherCourseRows)
+  console.log(`Inserted ${teacherCourseRows.length} teacher-course mappings`)
 
   // ── Generate data per batch ──
   let totalEnrollments = 0, totalAssessments = 0, totalMarks = 0, totalAttendance = 0, totalTimetable = 0
