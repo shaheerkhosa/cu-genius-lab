@@ -104,12 +104,7 @@ const Auth = () => {
           toast.error(error.message);
         }
       } else if (data.user) {
-        // Assign role based on portal selection
-        const role = portal === "teacher" ? "teacher" : "user";
-        await supabase.from('user_roles').insert({
-          user_id: data.user.id,
-          role: role,
-        });
+        // Role is auto-assigned by the database trigger based on portal_type metadata
         toast.success("Account created successfully! You can now login.");
         setIsLogin(true);
       }
