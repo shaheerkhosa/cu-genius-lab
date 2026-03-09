@@ -41,7 +41,11 @@ interface CourseMarkSummary {
   totalPossible: number;
   percentage: number;
   grade: string;
-  assessmentScores: { name: string; percentage: number }[];
+}
+
+interface TrendPoint {
+  name: string;
+  score: number;
 }
 
 const getGrade = (pct: number) => {
@@ -61,7 +65,7 @@ const Progress = () => {
   const [loading, setLoading] = useState(true);
   const [upcomingAssessments, setUpcomingAssessments] = useState<AssessmentItem[]>([]);
   const [courseMarks, setCourseMarks] = useState<CourseMarkSummary[]>([]);
-  const [performanceTrend, setPerformanceTrend] = useState<{ name: string; score: number }[]>([]);
+  const [performanceTrend, setPerformanceTrend] = useState<TrendPoint[]>([]);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -83,84 +87,73 @@ const Progress = () => {
 
       const enrolledCodes = enrollments?.map(e => e.course_code) || [];
 
-      if (enrolledCodes.length === 0) {
-        // Show all assessments if not enrolled anywhere (fallback for demo)
-        const { data: allAssessments } = await supabase
+      // Fetch assessments for enrolled courses
+      let assessments: AssessmentItem[] = [];
+      if (enrolledCodes.length > 0) {
+        const { data } = await supabase
           .from('assessments')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        if (allAssessments && allAssessments.length > 0) {
-          processAssessments(allAssessments as AssessmentItem[]);
-        }
-        setLoading(false);
-        return;
+          .in('course_code', enrolledCodes)
+          .order('created_at', { ascending: true });
+        assessments = (data as AssessmentItem[]) || [];
       }
 
-      // Fetch assessments for enrolled courses
-      const { data: assessments } = await supabase
-        .from('assessments')
-        .select('*')
-        .in('course_code', enrolledCodes)
-        .order('created_at', { ascending: true });
-
-      if (assessments) {
-        processAssessments(assessments as AssessmentItem[]);
-      }
-
-      setLoading(false);
-    };
-
-    const processAssessments = (assessments: AssessmentItem[]) => {
+      // Upcoming assessments: schedule_end in future
       const now = new Date();
-
-      // Upcoming: schedule_end in future or no schedule but recent
       const upcoming = assessments.filter(a => {
         if (a.schedule_end) return new Date(a.schedule_end) > now;
-        if (a.assessment_type === 'assignment' && a.schedule_end) return new Date(a.schedule_end) > now;
         return false;
       }).slice(0, 6);
       setUpcomingAssessments(upcoming);
 
-      // Group by course and compute aggregate marks
-      const courseMap = new Map<string, { courseName: string; assessments: { title: string; totalMarks: number }[] }>();
-      assessments.forEach(a => {
-        if (!courseMap.has(a.course_code)) {
-          courseMap.set(a.course_code, { courseName: a.course_name, assessments: [] });
+      // Fetch real marks for this student
+      const { data: myMarks } = await supabase
+        .from('student_marks')
+        .select('*, assessments!student_marks_assessment_id_fkey(course_code, course_name, total_marks, title, assessment_type, created_at)')
+        .eq('student_id', user.id)
+        .not('marks_obtained', 'is', null);
+
+      if (myMarks && myMarks.length > 0) {
+        // Group marks by course
+        const courseMap = new Map<string, { courseName: string; obtained: number; possible: number }>();
+        const trendData: TrendPoint[] = [];
+
+        for (const mark of myMarks) {
+          const assessment = mark.assessments as any;
+          if (!assessment) continue;
+
+          const code = assessment.course_code;
+          const existing = courseMap.get(code) || { courseName: assessment.course_name, obtained: 0, possible: 0 };
+          existing.obtained += (mark.marks_obtained as number);
+          existing.possible += assessment.total_marks;
+          courseMap.set(code, existing);
+
+          // Add to trend
+          trendData.push({
+            name: `${assessment.title}`,
+            score: Math.round(((mark.marks_obtained as number) / assessment.total_marks) * 100),
+          });
         }
-        courseMap.get(a.course_code)!.assessments.push({ title: a.title, totalMarks: a.total_marks });
-      });
 
-      // For marks, we use a percentage estimate based on assessment count
-      // In a real scenario, we'd query student_marks with student_id
-      const marks: CourseMarkSummary[] = Array.from(courseMap.entries()).map(([code, data]) => {
-        const totalPossible = data.assessments.reduce((s, a) => s + a.totalMarks, 0);
-        // Simulate student marks (since student_marks doesn't link to auth user)
-        const pct = Math.round(55 + Math.random() * 35);
-        const totalObtained = Math.round(totalPossible * pct / 100);
+        const marks: CourseMarkSummary[] = Array.from(courseMap.entries()).map(([code, data]) => {
+          const pct = data.possible > 0 ? Math.round((data.obtained / data.possible) * 100) : 0;
+          return {
+            courseCode: code,
+            courseName: data.courseName,
+            totalObtained: data.obtained,
+            totalPossible: data.possible,
+            percentage: pct,
+            grade: getGrade(pct),
+          };
+        });
+        setCourseMarks(marks);
+        setPerformanceTrend(trendData.slice(0, 12));
+      } else {
+        setCourseMarks([]);
+        setPerformanceTrend([]);
+      }
 
-        return {
-          courseCode: code,
-          courseName: data.courseName,
-          totalObtained,
-          totalPossible,
-          percentage: pct,
-          grade: getGrade(pct),
-          assessmentScores: data.assessments.map(a => ({
-            name: a.title,
-            percentage: Math.round(50 + Math.random() * 40),
-          })),
-        };
-      });
-      setCourseMarks(marks);
-
-      // Build performance trend from assessments chronologically
-      const trend = assessments.slice(0, 10).map(a => ({
-        name: a.title.length > 10 ? a.title.slice(0, 10) + '…' : a.title,
-        score: Math.round(55 + Math.random() * 35),
-      }));
-      setPerformanceTrend(trend);
+      setLoading(false);
     };
 
     fetchData();
@@ -238,7 +231,7 @@ const Progress = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {courseMarks.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No marks available yet.</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">No marks available yet. Enroll in courses to see your grades.</p>
                   ) : (
                     courseMarks.map((mark) => (
                       <div key={mark.courseCode} className="space-y-2">
@@ -263,6 +256,7 @@ const Progress = () => {
                           <ProgressBar value={mark.percentage} className="h-2" />
                           <span className="text-xs font-medium text-muted-foreground">{mark.grade}</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">{mark.totalObtained}/{mark.totalPossible} marks</p>
                       </div>
                     ))
                   )}
@@ -284,14 +278,14 @@ const Progress = () => {
                     <ResponsiveContainer width="100%" height={320}>
                       <LineChart data={performanceTrend} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} />
+                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" style={{ fontSize: '11px' }} angle={-20} textAnchor="end" height={50} />
                         <YAxis stroke="hsl(var(--muted-foreground))" style={{ fontSize: '12px' }} domain={[0, 100]} />
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
-                        <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} name="Score %" dot={{ r: 4, fill: 'hsl(var(--primary))' }} />
+                        <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2.5} name="Score %" dot={{ r: 4, fill: 'hsl(var(--primary))' }} />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-16">No assessment data yet.</p>
+                    <p className="text-sm text-muted-foreground text-center py-16">No graded assessments yet.</p>
                   )}
                 </CardContent>
               </Card>
@@ -336,12 +330,6 @@ const Progress = () => {
                           <div className="flex items-center gap-1 text-sm">
                             <Clock className="h-3 w-3" />
                             <span className="font-medium">Due {formatDate(a.schedule_end)}</span>
-                          </div>
-                        )}
-                        {a.schedule_start && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(a.schedule_start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         )}
                       </CardContent>
