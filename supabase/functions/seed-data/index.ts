@@ -106,7 +106,6 @@ function randomScore(total: number, difficulty = 0.72) {
   return Math.min(total, Math.max(0, Math.round(base + (Math.random() - 0.5) * vary * 2)))
 }
 
-// Batch insert helper
 async function batchInsert(supabase: any, table: string, rows: any[], size = 50) {
   for (let i = 0; i < rows.length; i += size) {
     const chunk = rows.slice(i, i + size)
@@ -115,6 +114,242 @@ async function batchInsert(supabase: any, table: string, rows: any[], size = 50)
   }
 }
 
+// ── Helpers ─────────────────────────────────────────────────────────────
+async function getTestUsers(supabase: any) {
+  // List all users and filter test ones
+  const allUsers: any[] = []
+  let page = 1
+  while (true) {
+    const { data: { users }, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error || !users || users.length === 0) break
+    allUsers.push(...users)
+    if (users.length < 1000) break
+    page++
+  }
+  return allUsers.filter((u: any) => u.email?.endsWith(TEST_DOMAIN))
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// PHASE: USERS — Create teacher and student auth accounts
+// ═════════════════════════════════════════════════════════════════════════
+async function phaseUsers(supabase: any) {
+  console.log('=== PHASE: USERS ===')
+  
+  // Check what already exists
+  const existingTestUsers = await getTestUsers(supabase)
+  const existingEmails = new Set(existingTestUsers.map((u: any) => u.email))
+  console.log(`Found ${existingTestUsers.length} existing test users`)
+
+  let teachersCreated = 0
+  let studentsCreated = 0
+
+  // Create teachers
+  for (let i = 0; i < 10; i++) {
+    const email = `teacher${i + 1}${TEST_DOMAIN}`
+    if (existingEmails.has(email)) continue
+    const { error } = await supabase.auth.admin.createUser({
+      email,
+      password: TEST_PASSWORD,
+      email_confirm: true,
+      user_metadata: { username: teacherNames[i], portal_type: 'teacher' },
+    })
+    if (error) { console.error(`Teacher error ${email}:`, error.message); continue }
+    teachersCreated++
+  }
+  console.log(`Created ${teachersCreated} new teachers`)
+
+  // Create students batch by batch
+  for (const batch of batches) {
+    let created = 0
+    for (let i = 1; i <= STUDENTS_PER_BATCH; i++) {
+      const email = `${batch.prefix.toLowerCase()}bcs${pad(i)}${TEST_DOMAIN}`
+      if (existingEmails.has(email)) continue
+      const roll = `${batch.label}-${pad(i)}`
+      const name = `${pick(firstNames)} ${pick(lastNames)}`
+      const { error } = await supabase.auth.admin.createUser({
+        email,
+        password: TEST_PASSWORD,
+        email_confirm: true,
+        user_metadata: { username: name, portal_type: 'student' },
+      })
+      if (error) { console.error(`Student error ${email}:`, error.message); continue }
+      created++
+    }
+    studentsCreated += created
+    console.log(`Batch ${batch.label}: created ${created} new students`)
+  }
+
+  return { teachersCreated, studentsCreated, totalExisting: existingTestUsers.length }
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// PHASE: DATA — Generate courses, enrollments, assessments, marks, etc.
+// ═════════════════════════════════════════════════════════════════════════
+async function phaseData(supabase: any) {
+  console.log('=== PHASE: DATA ===')
+
+  // Get all test users
+  const testUsers = await getTestUsers(supabase)
+  const teachers = testUsers.filter((u: any) => u.email?.startsWith('teacher'))
+  const teacherIds = teachers.map((u: any) => u.id)
+
+  if (teacherIds.length === 0) {
+    throw new Error('No teachers found. Run with phase=users first.')
+  }
+
+  // Build student map by batch
+  const studentsByBatch: Record<string, { id: string; roll: string; name: string }[]> = {}
+  for (const batch of batches) {
+    const prefix = batch.prefix.toLowerCase()
+    const batchStudents = testUsers
+      .filter((u: any) => u.email?.startsWith(`${prefix}bcs`))
+      .map((u: any, idx: number) => {
+        const num = parseInt(u.email.replace(`${prefix}bcs`, '').replace(TEST_DOMAIN, ''))
+        return {
+          id: u.id,
+          roll: `${batch.label}-${pad(num)}`,
+          name: u.user_metadata?.username || `Student ${num}`,
+        }
+      })
+    studentsByBatch[batch.prefix] = batchStudents
+    console.log(`Found ${batchStudents.length} students for ${batch.label}`)
+  }
+
+  // ── Clean existing academic data for test users ──
+  console.log('Cleaning existing academic data...')
+  const allTestIds = testUsers.map((u: any) => u.id)
+  
+  // Delete in correct order for FK constraints
+  for (const tid of teacherIds) {
+    // Get assessment IDs for this teacher
+    const { data: teacherAssessments } = await supabase.from('assessments').select('id').eq('teacher_id', tid)
+    const assessmentIds = (teacherAssessments || []).map((a: any) => a.id)
+    if (assessmentIds.length > 0) {
+      for (let i = 0; i < assessmentIds.length; i += 50) {
+        const chunk = assessmentIds.slice(i, i + 50)
+        await supabase.from('quiz_responses').delete().in('assessment_id', chunk)
+        await supabase.from('quiz_attempts').delete().in('assessment_id', chunk)
+        await supabase.from('quiz_questions').delete().in('assessment_id', chunk)
+        await supabase.from('student_marks').delete().in('assessment_id', chunk)
+      }
+    }
+    await supabase.from('assessments').delete().eq('teacher_id', tid)
+    await supabase.from('attendance').delete().eq('teacher_id', tid)
+    await supabase.from('timetable').delete().eq('teacher_id', tid)
+  }
+  for (const sid of allTestIds) {
+    await supabase.from('course_enrollments').delete().eq('student_id', sid)
+  }
+  // Clean courses table
+  await supabase.from('courses').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  console.log('Academic data cleaned')
+
+  // ── Insert courses ──
+  const allCourseRows: any[] = []
+  for (const [sem, courses] of Object.entries(coursesBySemester)) {
+    for (const c of courses) {
+      allCourseRows.push({
+        course_code: c.code, course_name: c.name,
+        credits: c.credits, department: c.dept, semester_number: parseInt(sem),
+      })
+    }
+  }
+  await batchInsert(supabase, 'courses', allCourseRows)
+  console.log(`Inserted ${allCourseRows.length} courses`)
+
+  // ── Assign teachers to courses (round-robin) ──
+  const allCourses = Object.values(coursesBySemester).flat()
+  const courseTeacher: Record<string, string> = {}
+  allCourses.forEach((c, idx) => { courseTeacher[c.code] = teacherIds[idx % teacherIds.length] })
+
+  // ── Generate data per batch ──
+  let totalEnrollments = 0, totalAssessments = 0, totalMarks = 0, totalAttendance = 0, totalTimetable = 0
+
+  for (const batch of batches) {
+    const students = studentsByBatch[batch.prefix]
+    if (!students || students.length === 0) { console.log(`Skipping ${batch.label} - no students`); continue }
+
+    const semesterCourses = coursesBySemester[batch.currentSemester] || []
+    console.log(`Processing ${batch.label}: ${students.length} students, ${semesterCourses.length} courses`)
+
+    // Enrollments
+    const enrollmentRows = students.flatMap(s => semesterCourses.map(c => ({ student_id: s.id, course_code: c.code })))
+    await batchInsert(supabase, 'course_enrollments', enrollmentRows, 100)
+    totalEnrollments += enrollmentRows.length
+
+    for (const course of semesterCourses) {
+      const teacherId = courseTeacher[course.code] || teacherIds[0]
+
+      // Assessments
+      const assessmentDefs = [
+        { type: 'quiz', title: 'Quiz 1', marks: 10 },
+        { type: 'quiz', title: 'Quiz 2', marks: 10 },
+        { type: 'quiz', title: 'Quiz 3', marks: 15 },
+        { type: 'assignment', title: 'Assignment 1', marks: 20 },
+        { type: 'assignment', title: 'Assignment 2', marks: 25 },
+        { type: 'midterm', title: 'Midterm Exam', marks: 30 },
+      ]
+
+      for (const def of assessmentDefs) {
+        const { data: assessment, error: aErr } = await supabase.from('assessments').insert({
+          teacher_id: teacherId,
+          course_code: course.code, course_name: course.name,
+          assessment_type: def.type, title: def.title, total_marks: def.marks,
+          is_online_quiz: false, is_marks_finalized: def.type === 'midterm',
+        }).select('id').single()
+
+        if (aErr || !assessment) { console.error(`Assessment err ${course.code} ${def.title}:`, aErr?.message); continue }
+        totalAssessments++
+
+        // Marks
+        const markRows = students.map(s => ({
+          assessment_id: assessment.id, student_id: s.id,
+          student_name: s.name, student_roll_number: s.roll,
+          marks_obtained: randomScore(def.marks), remarks: null,
+        }))
+        await batchInsert(supabase, 'student_marks', markRows, 100)
+        totalMarks += markRows.length
+      }
+
+      // Attendance (20 sessions)
+      const attendanceRows: any[] = []
+      for (let day = 0; day < 20; day++) {
+        const date = new Date()
+        date.setDate(date.getDate() - (20 - day) * 2)
+        const dateStr = date.toISOString().split('T')[0]
+        for (const s of students) {
+          attendanceRows.push({
+            student_id: s.id, teacher_id: courseTeacher[course.code] || teacherIds[0],
+            course_code: course.code, date: dateStr,
+            status: Math.random() > 0.15 ? 'present' : (Math.random() > 0.5 ? 'absent' : 'late'),
+          })
+        }
+      }
+      await batchInsert(supabase, 'attendance', attendanceRows, 200)
+      totalAttendance += attendanceRows.length
+
+      // Timetable (3 slots)
+      const days = [1, 3, 5]
+      const startHour = 8 + (allCourses.findIndex(c => c.code === course.code) % 6)
+      const timetableRows = days.map(d => ({
+        teacher_id: courseTeacher[course.code] || teacherIds[0],
+        course_code: course.code, course_name: course.name,
+        day_of_week: d,
+        start_time: `${String(startHour).padStart(2, '0')}:00`,
+        end_time: `${String(startHour + 1).padStart(2, '0')}:30`,
+        room: `R-${100 + Math.floor(Math.random() * 20)}`,
+      }))
+      await batchInsert(supabase, 'timetable', timetableRows)
+      totalTimetable += timetableRows.length
+    }
+  }
+
+  return { courses: allCourseRows.length, enrollments: totalEnrollments, assessments: totalAssessments, marks: totalMarks, attendance: totalAttendance, timetable: totalTimetable }
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═════════════════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -126,264 +361,33 @@ Deno.serve(async (req) => {
   )
 
   try {
-    // ════════════════════════════════════════════════════════════════════
-    // PHASE 1: CLEANUP — Remove all @test.edu users and their data
-    // ════════════════════════════════════════════════════════════════════
-    console.log('Phase 1: Cleaning up existing test data...')
-    const { data: { users: existingUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 })
-    const testUsers = (existingUsers || []).filter((u: any) => u.email?.endsWith(TEST_DOMAIN))
-    const testUserIds = testUsers.map((u: any) => u.id)
+    const url = new URL(req.url)
+    const phase = url.searchParams.get('phase') || 'all'
 
-    if (testUserIds.length > 0) {
-      // Delete dependent data first (order matters due to FK constraints)
-      for (const uid of testUserIds) {
-        await supabase.from('quiz_responses').delete().eq('student_id', uid)
-        await supabase.from('quiz_attempts').delete().eq('student_id', uid)
-        await supabase.from('attendance').delete().or(`student_id.eq.${uid},teacher_id.eq.${uid}`)
-        await supabase.from('student_marks').delete().eq('student_id', uid)
-        await supabase.from('course_enrollments').delete().eq('student_id', uid)
-        await supabase.from('assessments').delete().eq('teacher_id', uid)
-        await supabase.from('timetable').delete().eq('teacher_id', uid)
-        await supabase.from('notifications').delete().eq('user_id', uid)
-        await supabase.from('messages').delete().in('conversation_id',
-          (await supabase.from('conversations').select('id').eq('user_id', uid)).data?.map((c: any) => c.id) || []
-        )
-        await supabase.from('conversations').delete().eq('user_id', uid)
-        await supabase.from('documents').delete().eq('user_id', uid)
-        await supabase.from('user_roles').delete().eq('user_id', uid)
-        await supabase.from('profiles').delete().eq('id', uid)
-      }
-      // Delete auth users
-      for (const uid of testUserIds) {
-        await supabase.auth.admin.deleteUser(uid)
-      }
-      console.log(`Cleaned up ${testUserIds.length} test users`)
+    let result: any = {}
+
+    if (phase === 'users' || phase === 'all') {
+      result.users = await phaseUsers(supabase)
+    }
+    if (phase === 'data' || phase === 'all') {
+      result.data = await phaseData(supabase)
     }
 
-    // Clean courses table (we'll re-insert)
-    await supabase.from('courses').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-
-    // ════════════════════════════════════════════════════════════════════
-    // PHASE 2: INSERT COURSES
-    // ════════════════════════════════════════════════════════════════════
-    console.log('Phase 2: Inserting courses...')
-    const allCourseRows: any[] = []
-    for (const [sem, courses] of Object.entries(coursesBySemester)) {
-      for (const c of courses) {
-        allCourseRows.push({
-          course_code: c.code,
-          course_name: c.name,
-          credits: c.credits,
-          department: c.dept,
-          semester_number: parseInt(sem),
-        })
-      }
-    }
-    await batchInsert(supabase, 'courses', allCourseRows)
-    console.log(`Inserted ${allCourseRows.length} courses`)
-
-    // ════════════════════════════════════════════════════════════════════
-    // PHASE 3: CREATE TEACHERS
-    // ════════════════════════════════════════════════════════════════════
-    console.log('Phase 3: Creating teachers...')
-    const teacherIds: string[] = []
-    for (let i = 0; i < 10; i++) {
-      const email = `teacher${i + 1}${TEST_DOMAIN}`
-      const { data, error } = await supabase.auth.admin.createUser({
-        email,
-        password: TEST_PASSWORD,
-        email_confirm: true,
-        user_metadata: { username: teacherNames[i], portal_type: 'teacher' },
-      })
-      if (error) {
-        console.error(`Teacher create error ${email}:`, error.message)
-        continue
-      }
-      teacherIds.push(data.user.id)
-    }
-    console.log(`Created ${teacherIds.length} teachers`)
-
-    // Assign each teacher 3-4 courses (round-robin across all semesters)
-    const allCourses = Object.values(coursesBySemester).flat()
-    const teacherCourseMap: Record<string, typeof allCourses> = {}
-    allCourses.forEach((course, idx) => {
-      const tid = teacherIds[idx % teacherIds.length]
-      if (!teacherCourseMap[tid]) teacherCourseMap[tid] = []
-      teacherCourseMap[tid].push(course)
-    })
-
-    // ════════════════════════════════════════════════════════════════════
-    // PHASE 4: CREATE STUDENTS
-    // ════════════════════════════════════════════════════════════════════
-    console.log('Phase 4: Creating students...')
-    const studentsByBatch: Record<string, { id: string; roll: string; name: string }[]> = {}
-
-    for (const batch of batches) {
-      studentsByBatch[batch.prefix] = []
-      for (let i = 1; i <= STUDENTS_PER_BATCH; i++) {
-        const roll = `${batch.label}-${pad(i)}`
-        const email = `${batch.prefix.toLowerCase()}bcs${pad(i)}${TEST_DOMAIN}`
-        const name = `${pick(firstNames)} ${pick(lastNames)}`
-
-        const { data, error } = await supabase.auth.admin.createUser({
-          email,
-          password: TEST_PASSWORD,
-          email_confirm: true,
-          user_metadata: { username: name, portal_type: 'student' },
-        })
-        if (error) {
-          console.error(`Student create error ${email}:`, error.message)
-          continue
-        }
-        studentsByBatch[batch.prefix].push({ id: data.user.id, roll, name })
-      }
-      console.log(`Created ${studentsByBatch[batch.prefix].length} students for ${batch.label}`)
+    result.success = true
+    result.login_info = {
+      teachers: `teacher1${TEST_DOMAIN} through teacher10${TEST_DOMAIN}`,
+      students: `fa22bcs001${TEST_DOMAIN}, sp23bcs001${TEST_DOMAIN}, etc.`,
+      password: TEST_PASSWORD,
     }
 
-    // ════════════════════════════════════════════════════════════════════
-    // PHASE 5: ENROLLMENTS, ASSESSMENTS, MARKS, ATTENDANCE, TIMETABLE
-    // ════════════════════════════════════════════════════════════════════
-    console.log('Phase 5: Generating academic data...')
-    let totalEnrollments = 0
-    let totalAssessments = 0
-    let totalMarks = 0
-    let totalAttendance = 0
-    let totalTimetable = 0
-
-    for (const batch of batches) {
-      const students = studentsByBatch[batch.prefix]
-      if (!students || students.length === 0) continue
-
-      const semesterCourses = coursesBySemester[batch.currentSemester] || []
-
-      // ── Enrollments ──
-      const enrollmentRows = students.flatMap(s =>
-        semesterCourses.map(c => ({
-          student_id: s.id,
-          course_code: c.code,
-        }))
-      )
-      await batchInsert(supabase, 'course_enrollments', enrollmentRows, 100)
-      totalEnrollments += enrollmentRows.length
-
-      // ── For each course, create assessments ──
-      for (const course of semesterCourses) {
-        // Find the teacher for this course
-        const teacherId = Object.entries(teacherCourseMap).find(
-          ([, courses]) => courses.some(c => c.code === course.code)
-        )?.[0] || teacherIds[0]
-
-        const assessmentDefs = [
-          { type: 'quiz', title: 'Quiz 1', marks: 10 },
-          { type: 'quiz', title: 'Quiz 2', marks: 10 },
-          { type: 'quiz', title: 'Quiz 3', marks: 15 },
-          { type: 'assignment', title: 'Assignment 1', marks: 20 },
-          { type: 'assignment', title: 'Assignment 2', marks: 25 },
-          { type: 'midterm', title: 'Midterm Exam', marks: 30 },
-        ]
-
-        for (const def of assessmentDefs) {
-          const { data: assessment, error: aErr } = await supabase.from('assessments').insert({
-            teacher_id: teacherId,
-            course_code: course.code,
-            course_name: course.name,
-            assessment_type: def.type,
-            title: def.title,
-            total_marks: def.marks,
-            is_online_quiz: false,
-            is_marks_finalized: def.type === 'midterm',
-          }).select('id').single()
-
-          if (aErr || !assessment) {
-            console.error(`Assessment error ${course.code} ${def.title}:`, aErr?.message)
-            continue
-          }
-          totalAssessments++
-
-          // ── Student marks ──
-          const markRows = students.map(s => ({
-            assessment_id: assessment.id,
-            student_id: s.id,
-            student_name: s.name,
-            student_roll_number: s.roll,
-            marks_obtained: randomScore(def.marks),
-            remarks: null,
-          }))
-          await batchInsert(supabase, 'student_marks', markRows, 100)
-          totalMarks += markRows.length
-        }
-
-        // ── Attendance (20 sessions per course) ──
-        const attendanceRows: any[] = []
-        for (let day = 0; day < 20; day++) {
-          const date = new Date()
-          date.setDate(date.getDate() - (20 - day) * 2) // every other day going back
-          const dateStr = date.toISOString().split('T')[0]
-
-          for (const s of students) {
-            attendanceRows.push({
-              student_id: s.id,
-              teacher_id: Object.entries(teacherCourseMap).find(
-                ([, courses]) => courses.some(c => c.code === course.code)
-              )?.[0] || teacherIds[0],
-              course_code: course.code,
-              date: dateStr,
-              status: Math.random() > 0.15 ? 'present' : (Math.random() > 0.5 ? 'absent' : 'late'),
-            })
-          }
-        }
-        await batchInsert(supabase, 'attendance', attendanceRows, 200)
-        totalAttendance += attendanceRows.length
-
-        // ── Timetable (3 slots per course) ──
-        const days = [1, 3, 5] // Mon, Wed, Fri
-        const startHour = 8 + (allCourses.indexOf(course) % 6) // stagger times
-        const timetableRows = days.map(d => ({
-          teacher_id: Object.entries(teacherCourseMap).find(
-            ([, courses]) => courses.some(c => c.code === course.code)
-          )?.[0] || teacherIds[0],
-          course_code: course.code,
-          course_name: course.name,
-          day_of_week: d,
-          start_time: `${String(startHour).padStart(2, '0')}:00`,
-          end_time: `${String(startHour + 1).padStart(2, '0')}:30`,
-          room: `R-${100 + Math.floor(Math.random() * 20)}`,
-        }))
-        await batchInsert(supabase, 'timetable', timetableRows)
-        totalTimetable += timetableRows.length
-      }
-    }
-
-    const totalStudents = Object.values(studentsByBatch).reduce((sum, s) => sum + s.length, 0)
-
-    const summary = {
-      success: true,
-      teachers: teacherIds.length,
-      students: totalStudents,
-      courses: allCourseRows.length,
-      enrollments: totalEnrollments,
-      assessments: totalAssessments,
-      marks: totalMarks,
-      attendance: totalAttendance,
-      timetable: totalTimetable,
-      login_info: {
-        teachers: `teacher1${TEST_DOMAIN} through teacher10${TEST_DOMAIN}`,
-        students: `fa22bcs001${TEST_DOMAIN}, sp23bcs001${TEST_DOMAIN}, etc.`,
-        password: TEST_PASSWORD,
-      },
-    }
-
-    console.log('Seeding complete!', JSON.stringify(summary))
-
-    return new Response(JSON.stringify(summary, null, 2), {
+    console.log('Seed complete!', JSON.stringify(result))
+    return new Response(JSON.stringify(result, null, 2), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-
   } catch (err) {
     console.error('Seed error:', err)
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })
