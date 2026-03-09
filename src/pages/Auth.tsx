@@ -39,39 +39,29 @@ const Auth = () => {
   const location = useLocation();
   const redirectTo = (location.state as { from?: string })?.from || (portal === "teacher" ? "/teacher" : "/");
 
+  const resolveRedirect = async (session: { user: { id: string; user_metadata?: Record<string, unknown> } }) => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    const role = data?.role || session.user.user_metadata?.portal_type;
+    if (role === 'teacher') {
+      navigate("/teacher");
+    } else {
+      navigate("/");
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // Check role to redirect appropriately
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data?.role === 'teacher') {
-              navigate("/teacher");
-            } else {
-              navigate("/");
-            }
-          });
-      }
+      if (session) resolveRedirect(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && event === 'SIGNED_IN') {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data?.role === 'teacher') {
-              navigate("/teacher");
-            } else {
-              navigate("/");
-            }
-          });
+        resolveRedirect(session);
       }
     });
 
