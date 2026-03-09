@@ -183,7 +183,7 @@ const TeacherStudyGuide = () => {
               <span className="text-foreground">Generator</span>
             </h1>
             <p className="text-muted-foreground text-lg">
-              Generate study materials for your class based on performance data
+              Create and distribute targeted study materials based on class performance analytics
             </p>
           </div>
 
