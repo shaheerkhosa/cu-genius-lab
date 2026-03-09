@@ -131,6 +131,8 @@ const TeacherUpload = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<{ student_id: string; student_name: string; student_email: string; status: string }[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceSaving, setAttendanceSaving] = useState(false);
+  const [screenshotParsing, setScreenshotParsing] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
