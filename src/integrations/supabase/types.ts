@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessments: {
+        Row: {
+          assessment_type: string
+          course_code: string
+          course_name: string
+          created_at: string
+          id: string
+          teacher_id: string
+          title: string
+          total_marks: number
+          updated_at: string
+        }
+        Insert: {
+          assessment_type: string
+          course_code: string
+          course_name: string
+          created_at?: string
+          id?: string
+          teacher_id: string
+          title: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Update: {
+          assessment_type?: string
+          course_code?: string
+          course_name?: string
+          created_at?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -197,6 +233,47 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      student_marks: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          id: string
+          marks_obtained: number | null
+          remarks: string | null
+          student_name: string
+          student_roll_number: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          id?: string
+          marks_obtained?: number | null
+          remarks?: string | null
+          student_name: string
+          student_roll_number: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          marks_obtained?: number | null
+          remarks?: string | null
+          student_name?: string
+          student_roll_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_marks_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
