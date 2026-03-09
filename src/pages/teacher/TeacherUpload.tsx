@@ -67,7 +67,8 @@ interface Enrollment {
   id: string;
   student_id: string;
   course_code: string;
-  profiles?: { username: string; email: string };
+  student_name?: string;
+  student_email?: string;
 }
 
 const courses = [
