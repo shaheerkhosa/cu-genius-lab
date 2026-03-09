@@ -111,8 +111,10 @@ const TeacherUpload = () => {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [newIsOnlineQuiz, setNewIsOnlineQuiz] = useState(false);
+  const [newIsOnlineAssignment, setNewIsOnlineAssignment] = useState(false);
   const [newScheduleStart, setNewScheduleStart] = useState('');
   const [newDurationMinutes, setNewDurationMinutes] = useState('30');
+  const [newDeadline, setNewDeadline] = useState('');
   const [newCourseCode, setNewCourseCode] = useState(courses[0].code);
 
   // Add student dialog
