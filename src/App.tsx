@@ -12,6 +12,7 @@ import AdminDocuments from "./pages/AdminDocuments";
 import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
+import StudentQuiz from "./pages/StudentQuiz";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
