@@ -65,6 +65,36 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance: {
+        Row: {
+          course_code: string
+          created_at: string
+          date: string
+          id: string
+          status: string
+          student_id: string
+          teacher_id: string
+        }
+        Insert: {
+          course_code: string
+          created_at?: string
+          date?: string
+          id?: string
+          status?: string
+          student_id: string
+          teacher_id: string
+        }
+        Update: {
+          course_code?: string
+          created_at?: string
+          date?: string
+          id?: string
+          status?: string
+          student_id?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
