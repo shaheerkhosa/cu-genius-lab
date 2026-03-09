@@ -88,7 +88,7 @@ export function AppSidebar() {
                       className={({ isActive }) =>
                         `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
                           isActive
-                            ? "bg-primary/10 text-primary border-2 border-primary/20 font-semibold"
+                            ? "bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/30 border-2 border-primary"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
                         }`
                       }
