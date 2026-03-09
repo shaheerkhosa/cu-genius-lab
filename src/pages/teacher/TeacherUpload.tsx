@@ -123,6 +123,15 @@ const TeacherUpload = () => {
   const [enrollEmail, setEnrollEmail] = useState('');
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
 
+  // Attendance state
+  const [attendanceDate, setAttendanceDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  });
+  const [attendanceRecords, setAttendanceRecords] = useState<{ student_id: string; student_name: string; student_email: string; status: string }[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceSaving, setAttendanceSaving] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
 
