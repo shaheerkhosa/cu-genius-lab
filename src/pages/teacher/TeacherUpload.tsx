@@ -72,12 +72,7 @@ interface Enrollment {
   student_email?: string;
 }
 
-const courses = [
-  { code: 'CS403', name: 'Computer Networks' },
-  { code: 'CS401', name: 'Software Engineering' },
-  { code: 'CS402', name: 'Operating Systems' },
-  { code: 'CS404', name: 'Artificial Intelligence' },
-];
+// No more hardcoded courses - we pull from teacher_courses
 
 const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }[] = [
   { value: 'quiz', label: 'Quizzes', icon: <ClipboardList className="w-4 h-4" /> },
