@@ -236,6 +236,7 @@ async function phaseData(supabase: any) {
     await supabase.from('assessments').delete().eq('teacher_id', tid)
     await supabase.from('attendance').delete().eq('teacher_id', tid)
     await supabase.from('timetable').delete().eq('teacher_id', tid)
+    await supabase.from('teacher_courses').delete().eq('teacher_id', tid)
   }
   for (const sid of allTestIds) {
     await supabase.from('course_enrollments').delete().eq('student_id', sid)
