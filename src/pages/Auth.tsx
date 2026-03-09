@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { PillToggle } from "@/components/PillToggle";
 import { z } from "zod";
+import { usePortalTheme } from "@/hooks/usePortalTheme";
 
 const signupSchema = z.object({
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters"),

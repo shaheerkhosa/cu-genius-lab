@@ -9,6 +9,8 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  usePortalTheme("student");
+
   return (
     <ProtectedRoute>
       <SidebarProvider defaultOpen={true}>
