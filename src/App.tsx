@@ -13,12 +13,14 @@ import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
 import StudentQuiz from "./pages/StudentQuiz";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
 import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
 import TeacherProgress from "./pages/teacher/TeacherProgress";
 import TeacherUpload from "./pages/teacher/TeacherUpload";
+import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +41,13 @@ const App = () => (
             <Route path="/admin/documents" element={<AdminDocuments />} />
             <Route path="/study" element={<Study />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/schedule" element={<Schedule />} />
             <Route path="/quizzes" element={<StudentQuiz />} />
             {/* Teacher routes */}
             <Route path="/teacher" element={<TeacherDashboard />} />
             <Route path="/teacher/upload" element={<TeacherUpload />} />
+            <Route path="/teacher/schedule" element={<TeacherSchedule />} />
             <Route path="/teacher/course" element={<TeacherStudyGuide />} />
-            <Route path="/teacher/progress" element={<TeacherProgress />} />
             <Route path="/teacher/progress" element={<TeacherProgress />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

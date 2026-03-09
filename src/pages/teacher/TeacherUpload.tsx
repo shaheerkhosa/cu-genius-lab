@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { gsap } from 'gsap';
 
-type AssessmentType = 'quiz' | 'assignment' | 'midterm' | 'final';
+type AssessmentType = 'quiz' | 'assignment' | 'midterm' | 'final' | 'attendance';
 
 interface Assessment {
   id: string;
@@ -83,6 +83,7 @@ const tabConfig: { value: AssessmentType; label: string; icon: React.ReactNode }
   { value: 'assignment', label: 'Assignments', icon: <FileText className="w-4 h-4" /> },
   { value: 'midterm', label: 'Midterms', icon: <BookOpen className="w-4 h-4" /> },
   { value: 'final', label: 'Finals', icon: <GraduationCap className="w-4 h-4" /> },
+  { value: 'attendance', label: 'Attendance', icon: <Users className="w-4 h-4" /> },
 ];
 
 // No more hardcoded students - we pull from course_enrollments
@@ -122,6 +123,15 @@ const TeacherUpload = () => {
   const [enrollEmail, setEnrollEmail] = useState('');
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
 
+  // Attendance state
+  const [attendanceDate, setAttendanceDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  });
+  const [attendanceRecords, setAttendanceRecords] = useState<{ student_id: string; student_name: string; student_email: string; status: string }[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceSaving, setAttendanceSaving] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
 
@@ -133,6 +143,7 @@ const TeacherUpload = () => {
   };
 
   const fetchAssessments = useCallback(async () => {
+    if (activeTab === 'attendance') { setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from('assessments')
@@ -430,6 +441,81 @@ const TeacherUpload = () => {
   const handleUnenroll = async (enrollmentId: string) => {
     await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
     fetchEnrollments();
+  };
+
+  // ─── Attendance ───
+  const fetchAttendanceForDate = async () => {
+    setAttendanceLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAttendanceLoading(false); return; }
+
+    // Get enrolled students
+    const { data: enrolled } = await supabase.from('course_enrollments').select('student_id').eq('course_code', selectedCourse);
+    if (!enrolled || enrolled.length === 0) { setAttendanceRecords([]); setAttendanceLoading(false); return; }
+
+    const studentIds = enrolled.map(e => e.student_id);
+    const { data: profiles } = await supabase.from('profiles').select('id, username, email').in('id', studentIds);
+    const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+    const dateOnly = attendanceDate.slice(0, 10);
+
+    // Check existing attendance for this date
+    const { data: existing } = await supabase.from('attendance').select('*')
+      .eq('course_code', selectedCourse)
+      .eq('date', dateOnly);
+
+    const existingMap = new Map((existing || []).map(a => [a.student_id, a.status]));
+
+    const records = studentIds.map(sid => ({
+      student_id: sid,
+      student_name: profileMap.get(sid)?.username || 'Unknown',
+      student_email: profileMap.get(sid)?.email || '',
+      status: existingMap.get(sid) || 'present',
+    }));
+
+    setAttendanceRecords(records);
+    setAttendanceLoading(false);
+  };
+
+  const handleSaveAttendance = async () => {
+    setAttendanceSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAttendanceSaving(false); return; }
+
+    const dateOnly = attendanceDate.slice(0, 10);
+
+    // Delete existing records for this date/course
+    await supabase.from('attendance').delete()
+      .eq('course_code', selectedCourse)
+      .eq('date', dateOnly)
+      .eq('teacher_id', user.id);
+
+    // Insert new records
+    const rows = attendanceRecords.map(r => ({
+      course_code: selectedCourse,
+      student_id: r.student_id,
+      teacher_id: user.id,
+      date: dateOnly,
+      status: r.status,
+    }));
+
+    if (rows.length > 0) {
+      const { error } = await supabase.from('attendance').insert(rows);
+      if (error) { toast.error('Failed to save attendance'); setAttendanceSaving(false); return; }
+    }
+
+    toast.success('Attendance saved');
+    setAttendanceSaving(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'attendance') {
+      fetchAttendanceForDate();
+    }
+  }, [activeTab, selectedCourse, attendanceDate]);
+
+  const updateAttendanceStatus = (studentId: string, status: string) => {
+    setAttendanceRecords(prev => prev.map(r => r.student_id === studentId ? { ...r, status } : r));
   };
 
   const getScheduleStatus = (a: Assessment) => {
@@ -772,7 +858,7 @@ const TeacherUpload = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={v => setActiveTab(v as AssessmentType)}>
-            <TabsList className="animate-card grid w-full grid-cols-4 h-12 rounded-xl">
+            <TabsList className="animate-card grid w-full grid-cols-5 h-12 rounded-xl">
               {tabConfig.map(t => (
                 <TabsTrigger key={t.value} value={t.value} className="rounded-lg gap-2 text-sm">
                   {t.icon} {t.label}
@@ -780,7 +866,7 @@ const TeacherUpload = () => {
               ))}
             </TabsList>
 
-            {tabConfig.map(t => (
+            {tabConfig.filter(t => t.value !== 'attendance').map(t => (
               <TabsContent key={t.value} value={t.value} className="space-y-4 mt-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">{t.label} for {courseName}</h2>
@@ -850,7 +936,6 @@ const TeacherUpload = () => {
 
                             <CollapsibleContent>
                               <div className="px-4 pb-4 space-y-4">
-                                {/* Online quiz: show quiz builder */}
                                 {a.is_online_quiz && a.assessment_type === 'quiz' && (
                                   <QuizBuilder
                                     assessmentId={a.id}
@@ -859,8 +944,6 @@ const TeacherUpload = () => {
                                     onSaved={() => fetchQuestions(a.id)}
                                   />
                                 )}
-
-                                {/* Online assignment: show quiz builder for open-ended questions */}
                                 {a.is_online_quiz && a.assessment_type === 'assignment' && (
                                   <QuizBuilder
                                     assessmentId={a.id}
@@ -869,19 +952,13 @@ const TeacherUpload = () => {
                                     onSaved={() => fetchQuestions(a.id)}
                                   />
                                 )}
-
-                                {/* For non-online: marks table */}
                                 {!a.is_online_quiz && renderMarksTable(a)}
-
-                                {/* For online quizzes that ended, show auto-graded results */}
                                 {a.is_online_quiz && a.assessment_type === 'quiz' && getScheduleStatus(a) === 'ended' && (
                                   <div className="pt-4 border-t border-border/50">
                                     <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
                                     <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
                                   </div>
                                 )}
-
-                                {/* For online assignments: marks table for manual grading */}
                                 {a.is_online_quiz && a.assessment_type === 'assignment' && (
                                   <div className="pt-4 border-t border-border/50">
                                     <h4 className="font-semibold text-sm mb-2">Student Submissions</h4>
@@ -899,6 +976,89 @@ const TeacherUpload = () => {
                 )}
               </TabsContent>
             ))}
+
+            {/* Attendance Tab */}
+            <TabsContent value="attendance" className="space-y-4 mt-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <h2 className="text-lg font-semibold">Attendance for {courseName}</h2>
+              </div>
+
+              <Card className="animate-card backdrop-blur border border-border/50 bg-card/80">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Clock className="w-4 h-4" /> Date & Time
+                      </Label>
+                      <Input
+                        type="datetime-local"
+                        value={attendanceDate}
+                        onChange={e => setAttendanceDate(e.target.value)}
+                        className="rounded-xl w-[260px]"
+                      />
+                    </div>
+                    <Button onClick={handleSaveAttendance} disabled={attendanceSaving || attendanceRecords.length === 0} className="gap-2 rounded-xl mt-5">
+                      <Upload className="w-4 h-4" />
+                      {attendanceSaving ? 'Saving...' : 'Upload Attendance'}
+                    </Button>
+                  </div>
+
+                  {attendanceLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading students...</div>
+                  ) : attendanceRecords.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p>No students enrolled in {selectedCourse}. Enroll students first using "Manage Students".</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px]">#</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="w-[200px]">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {attendanceRecords.map((r, i) => (
+                            <TableRow key={r.student_id}>
+                              <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                              <TableCell className="text-sm font-medium">{r.student_name}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{r.student_email}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  {['present', 'absent', 'late'].map(status => (
+                                    <Button
+                                      key={status}
+                                      variant={r.status === status ? 'default' : 'outline'}
+                                      size="sm"
+                                      className={`text-xs h-7 rounded-lg capitalize ${
+                                        r.status === status
+                                          ? status === 'present'
+                                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                                            : status === 'absent'
+                                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                                              : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                                          : ''
+                                      }`}
+                                      onClick={() => updateAttendanceStatus(r.student_id, status)}
+                                    >
+                                      {status === 'present' ? 'P' : status === 'absent' ? 'A' : 'L'}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield, Menu, ClipboardList } from "lucide-react";
+import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield, Menu, ClipboardList, CalendarDays } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -23,6 +23,7 @@ const menuItems = [
   { title: "Estimator", url: "/estimator", icon: PieChart },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Quizzes", url: "/quizzes", icon: ClipboardList },
+  { title: "Schedule", url: "/schedule", icon: CalendarDays },
   { title: "Study", url: "/study", icon: BookOpen },
   { title: "Progress", url: "/progress", icon: TrendingUp },
 ];
