@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -47,11 +47,29 @@ const StudentQuiz = () => {
 
   const fetchQuizzes = async () => {
     setLoading(true);
-    // Fetch online quizzes that are currently live
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    // Get courses the student is enrolled in
+    const { data: enrollments } = await supabase
+      .from('course_enrollments')
+      .select('course_code')
+      .eq('student_id', user.id);
+
+    const enrolledCodes = enrollments?.map(e => e.course_code) || [];
+
+    if (enrolledCodes.length === 0) {
+      setQuizzes([]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch online quizzes that are currently live for enrolled courses
     const { data, error } = await supabase
       .from('assessments')
       .select('id, title, course_code, course_name, total_marks, schedule_start, schedule_end')
       .eq('is_online_quiz', true)
+      .in('course_code', enrolledCodes)
       .lte('schedule_start', new Date().toISOString())
       .gte('schedule_end', new Date().toISOString());
 
@@ -60,23 +78,19 @@ const StudentQuiz = () => {
     }
 
     // Fetch completed attempts
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: attempts } = await supabase
-        .from('quiz_attempts')
-        .select('assessment_id')
-        .eq('student_id', user.id)
-        .not('completed_at', 'is', null);
+    const { data: attempts } = await supabase
+      .from('quiz_attempts')
+      .select('assessment_id')
+      .eq('student_id', user.id)
+      .not('completed_at', 'is', null);
 
-      if (attempts) {
-        setCompletedQuizIds(attempts.map(a => a.assessment_id));
-      }
+    if (attempts) {
+      setCompletedQuizIds(attempts.map(a => a.assessment_id));
     }
     setLoading(false);
   };
 
   const startQuiz = async (quiz: AvailableQuiz) => {
-    // Fetch questions
     const { data: qs, error } = await supabase
       .from('quiz_questions')
       .select('id, question_text, option_a, option_b, option_c, option_d, marks, question_order')
@@ -88,7 +102,6 @@ const StudentQuiz = () => {
       return;
     }
 
-    // Create attempt
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Not authenticated'); return; }
 
@@ -122,7 +135,6 @@ const StudentQuiz = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSubmitting(false); return; }
 
-    // We need correct_option to grade — fetch full questions with answers
     const { data: fullQs } = await supabase
       .from('quiz_questions')
       .select('*')
@@ -144,11 +156,9 @@ const StudentQuiz = () => {
       };
     });
 
-    // Insert responses
     const { error: respError } = await supabase.from('quiz_responses').insert(responses);
     if (respError) { toast.error('Failed to submit responses'); setSubmitting(false); return; }
 
-    // Update attempt
     await supabase.from('quiz_attempts').update({
       completed_at: new Date().toISOString(),
       score,
