@@ -58,12 +58,6 @@ All colors MUST be HSL.
     --sidebar-primary: 271 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-ring: 271 91% 60%;
-    transition: --primary 0.5s ease, --ring 0.5s ease, --accent 0.5s ease;
-  }
-
-  .teacher-portal *,
-  [class*="teacher-portal"] {
-    transition: color 0.5s ease, background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
   }
 
   .dark .teacher-portal {
@@ -117,6 +111,7 @@ All colors MUST be HSL.
 @layer base {
   * {
     @apply border-border;
+    transition: color 0.5s ease, background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, fill 0.5s ease, stroke 0.5s ease;
   }
 
   body {
