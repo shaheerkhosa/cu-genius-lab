@@ -119,7 +119,7 @@ export function AppSidebar() {
                           className={({ isActive }) =>
                             `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
                               isActive
-                                ? "bg-accent/15 text-accent font-semibold border-2 border-accent/30"
+                                ? "bg-primary/15 text-primary font-semibold border-2 border-primary/30"
                                 : "text-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
                             }`
                           }
