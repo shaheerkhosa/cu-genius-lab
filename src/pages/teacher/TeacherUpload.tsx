@@ -300,7 +300,7 @@ const TeacherUpload = () => {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Create {t.label.slice(0, -1))}  </DialogTitle>
+                        <DialogTitle>Create {t.label.slice(0, -1)}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-2">
                         <div className="space-y-2">
