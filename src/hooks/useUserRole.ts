@@ -15,6 +15,7 @@ export function useUserRole() {
         if (!user) {
           setRole(null);
           setIsAdmin(false);
+          setIsTeacher(false);
           setLoading(false);
           return;
         }
