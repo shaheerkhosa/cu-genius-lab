@@ -95,6 +95,27 @@ export type Database = {
         }
         Relationships: []
       }
+      course_enrollments: {
+        Row: {
+          course_code: string
+          enrolled_at: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          course_code: string
+          enrolled_at?: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          course_code?: string
+          enrolled_at?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           admin_notes: string | null

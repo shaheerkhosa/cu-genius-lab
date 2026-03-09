@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import {
   Plus, Trash2, Save, Upload, FileText, ClipboardList, BookOpen,
   GraduationCap, ChevronDown, ChevronRight, Eye, Paperclip, UserPlus,
-  Clock, Wifi, CheckCircle,
+  Clock, Wifi, CheckCircle, Users,
 } from 'lucide-react';
 import { gsap } from 'gsap';
 
@@ -60,6 +60,13 @@ interface QuizQuestion {
   correct_option: 'a' | 'b' | 'c' | 'd';
   marks: number;
   question_order: number;
+}
+
+interface Enrollment {
+  id: string;
+  student_id: string;
+  course_code: string;
+  profiles?: { username: string; email: string };
 }
 
 const courses = [
@@ -105,7 +112,8 @@ const TeacherUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [newIsOnlineQuiz, setNewIsOnlineQuiz] = useState(false);
   const [newScheduleStart, setNewScheduleStart] = useState('');
-  const [newScheduleEnd, setNewScheduleEnd] = useState('');
+  const [newDurationMinutes, setNewDurationMinutes] = useState('30');
+  const [newCourseCode, setNewCourseCode] = useState(courses[0].code);
 
   // Add student dialog
   const [addStudentOpen, setAddStudentOpen] = useState(false);
@@ -114,8 +122,20 @@ const TeacherUpload = () => {
   const [addStudentRoll, setAddStudentRoll] = useState('');
   const [addStudentIsHardCopy, setAddStudentIsHardCopy] = useState(false);
 
+  // Enrollment dialog
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [enrollEmail, setEnrollEmail] = useState('');
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
+
+  const computeEndTime = (start: string, durationMin: string) => {
+    if (!start) return '';
+    const d = new Date(start);
+    d.setMinutes(d.getMinutes() + (parseInt(durationMin) || 30));
+    return d.toISOString();
+  };
 
   const fetchAssessments = useCallback(async () => {
     setLoading(true);
@@ -157,13 +177,19 @@ const TeacherUpload = () => {
     setQuestionsMap(prev => ({ ...prev, [assessmentId]: (data as QuizQuestion[]) || [] }));
   };
 
+  const fetchEnrollments = async () => {
+    const { data } = await supabase.from('course_enrollments').select('*')
+      .eq('course_code', selectedCourse);
+    setEnrollments((data as Enrollment[]) || []);
+  };
+
   const toggleExpand = (a: Assessment) => {
     if (expandedId === a.id) {
       setExpandedId(null);
     } else {
       setExpandedId(a.id);
       if (!marksMap[a.id]) fetchMarks(a.id);
-      if (a.is_online_quiz && !questionsMap[a.id]) fetchQuestions(a.id);
+      if (a.is_online_quiz) fetchQuestions(a.id);
     }
   };
 
@@ -173,7 +199,8 @@ const TeacherUpload = () => {
     setNewFile(null);
     setNewIsOnlineQuiz(false);
     setNewScheduleStart('');
-    setNewScheduleEnd('');
+    setNewDurationMinutes('30');
+    setNewCourseCode(selectedCourse);
   };
 
   const handleCreate = async () => {
@@ -181,21 +208,28 @@ const TeacherUpload = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Not authenticated'); return; }
 
+    const isQuizTab = activeTab === 'quiz';
+    const isExamTab = activeTab === 'midterm' || activeTab === 'final';
+
     // Validate schedule for online quizzes
-    if (newIsOnlineQuiz && (!newScheduleStart || !newScheduleEnd)) {
-      toast.error('Schedule start and end times are required for online quizzes');
-      return;
-    }
-    if (newIsOnlineQuiz && new Date(newScheduleStart) >= new Date(newScheduleEnd)) {
-      toast.error('Schedule end must be after start');
+    if (isQuizTab && newIsOnlineQuiz && !newScheduleStart) {
+      toast.error('Start time is required for online quizzes');
       return;
     }
 
-    // Validate PDF required for midterms/finals
-    if ((activeTab === 'midterm' || activeTab === 'final') && !newFile) {
-      toast.error('PDF upload is required for midterms and finals');
+    // PDF required for non-online assessments (quizzes without online, assignments, midterms, finals)
+    if (isQuizTab && !newIsOnlineQuiz && !newFile) {
+      toast.error('PDF upload is required for paper-based quizzes');
       return;
     }
+    if ((activeTab === 'assignment' || isExamTab) && !newFile) {
+      toast.error('PDF upload is required');
+      return;
+    }
+
+    const scheduleEnd = isQuizTab && newIsOnlineQuiz && newScheduleStart
+      ? computeEndTime(newScheduleStart, newDurationMinutes)
+      : null;
 
     setUploading(true);
     let filePath: string | null = null;
@@ -210,22 +244,22 @@ const TeacherUpload = () => {
 
     const { data, error } = await supabase.from('assessments').insert({
       teacher_id: user.id,
-      course_code: selectedCourse,
-      course_name: courseName,
+      course_code: newCourseCode,
+      course_name: courses.find(c => c.code === newCourseCode)?.name || '',
       assessment_type: activeTab,
       title: newTitle.trim(),
       total_marks: parseInt(newTotalMarks) || 100,
       file_path: filePath,
-      is_online_quiz: activeTab === 'quiz' && newIsOnlineQuiz,
-      schedule_start: newIsOnlineQuiz ? newScheduleStart : null,
-      schedule_end: newIsOnlineQuiz ? newScheduleEnd : null,
+      is_online_quiz: isQuizTab && newIsOnlineQuiz,
+      schedule_start: isQuizTab && newIsOnlineQuiz ? newScheduleStart : null,
+      schedule_end: scheduleEnd,
       is_marks_finalized: false,
     }).select().single();
 
     if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
 
     // For non-online quizzes and assignments, add default students
-    if (!(activeTab === 'quiz' && newIsOnlineQuiz)) {
+    if (!(isQuizTab && newIsOnlineQuiz)) {
       const studentRows = defaultStudents.map(s => ({
         assessment_id: (data as Assessment).id,
         student_name: s.name,
@@ -290,7 +324,6 @@ const TeacherUpload = () => {
   };
 
   const handleFinalizeMarks = async (assessment: Assessment) => {
-    // First save, then finalize
     await handleSaveMarks(assessment);
     const { error } = await supabase.from('assessments').update({ is_marks_finalized: true }).eq('id', assessment.id);
     if (error) toast.error('Failed to finalize');
@@ -333,6 +366,30 @@ const TeacherUpload = () => {
     if (!error) setMarksMap(prev => ({ ...prev, [assessmentId]: (prev[assessmentId] || []).filter(m => m.id !== markId) }));
   };
 
+  const handleEnrollStudent = async () => {
+    if (!enrollEmail.trim()) { toast.error('Email is required'); return; }
+    // Find user by email in profiles
+    const { data: profile } = await supabase.from('profiles').select('id, username, email').eq('email', enrollEmail.trim()).maybeSingle();
+    if (!profile) { toast.error('No user found with that email'); return; }
+
+    const { error } = await supabase.from('course_enrollments').insert({
+      student_id: profile.id,
+      course_code: selectedCourse,
+    });
+    if (error) {
+      toast.error(error.code === '23505' ? 'Student already enrolled' : 'Failed to enroll');
+      return;
+    }
+    toast.success(`${profile.username} enrolled in ${selectedCourse}`);
+    setEnrollEmail('');
+    fetchEnrollments();
+  };
+
+  const handleUnenroll = async (enrollmentId: string) => {
+    await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
+    fetchEnrollments();
+  };
+
   const getScheduleStatus = (a: Assessment) => {
     if (!a.schedule_start || !a.schedule_end) return null;
     const now = new Date();
@@ -347,11 +404,20 @@ const TeacherUpload = () => {
     return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const getDurationLabel = (a: Assessment) => {
+    if (!a.schedule_start || !a.schedule_end) return '';
+    const diff = new Date(a.schedule_end).getTime() - new Date(a.schedule_start).getTime();
+    const mins = Math.round(diff / 60000);
+    if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    return `${mins}m`;
+  };
+
   // Render helpers
   const renderCreateDialog = (tabLabel: string) => {
     const singular = tabLabel.slice(0, -1);
     const isQuizTab = activeTab === 'quiz';
     const isExamTab = activeTab === 'midterm' || activeTab === 'final';
+    const pdfRequired = isQuizTab ? !newIsOnlineQuiz : true;
 
     return (
       <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
@@ -369,6 +435,22 @@ const TeacherUpload = () => {
               <Label>Title</Label>
               <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder={`e.g. ${singular} 1`} className="rounded-xl" />
             </div>
+
+            {/* Course selector */}
+            <div className="space-y-2">
+              <Label>Course / Class</Label>
+              <Select value={newCourseCode} onValueChange={setNewCourseCode}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map(c => (
+                    <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Total Marks</Label>
               <Input type="number" value={newTotalMarks} onChange={e => setNewTotalMarks(e.target.value)} placeholder="100" className="rounded-xl" />
@@ -385,22 +467,27 @@ const TeacherUpload = () => {
               </div>
             )}
 
-            {/* Schedule (online quiz or exam) */}
-            {(newIsOnlineQuiz || isExamTab) && (
+            {/* Schedule (online quiz only) */}
+            {isQuizTab && newIsOnlineQuiz && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border/50">
                 <Label className="text-sm font-medium flex items-center gap-1">
                   <Clock className="w-4 h-4" /> Schedule
                 </Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Start</Label>
+                    <Label className="text-xs">Start Time</Label>
                     <Input type="datetime-local" value={newScheduleStart} onChange={e => setNewScheduleStart(e.target.value)} className="rounded-lg text-sm" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">End</Label>
-                    <Input type="datetime-local" value={newScheduleEnd} onChange={e => setNewScheduleEnd(e.target.value)} className="rounded-lg text-sm" />
+                    <Label className="text-xs">Duration (minutes)</Label>
+                    <Input type="number" min={5} value={newDurationMinutes} onChange={e => setNewDurationMinutes(e.target.value)} className="rounded-lg text-sm" placeholder="30" />
                   </div>
                 </div>
+                {newScheduleStart && newDurationMinutes && (
+                  <p className="text-xs text-muted-foreground">
+                    End time: {new Date(computeEndTime(newScheduleStart, newDurationMinutes)).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
               </div>
             )}
 
@@ -408,7 +495,7 @@ const TeacherUpload = () => {
             <div className="space-y-2">
               <Label>
                 Upload PDF
-                {isExamTab ? <span className="text-destructive text-xs ml-1">*required</span> : <span className="text-muted-foreground text-xs ml-1">(optional)</span>}
+                {pdfRequired ? <span className="text-destructive text-xs ml-1">*required</span> : <span className="text-muted-foreground text-xs ml-1">(optional)</span>}
               </Label>
               <Input type="file" accept=".pdf,.doc,.docx" onChange={e => setNewFile(e.target.files?.[0] || null)} className="rounded-xl" />
               {newFile && <p className="text-xs text-muted-foreground flex items-center gap-1"><Paperclip className="w-3 h-3" /> {newFile.name}</p>}
@@ -547,8 +634,8 @@ const TeacherUpload = () => {
             <p className="text-muted-foreground">Create assessments, upload files, and manage student marks</p>
           </div>
 
-          {/* Course Selector */}
-          <div className="animate-card flex justify-center">
+          {/* Course Selector + Enrollment */}
+          <div className="animate-card flex justify-center gap-3 items-center">
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
               <SelectTrigger className="w-[320px] rounded-xl h-12 text-base">
                 <SelectValue />
@@ -559,6 +646,38 @@ const TeacherUpload = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Dialog open={enrollOpen} onOpenChange={o => { setEnrollOpen(o); if (o) fetchEnrollments(); }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 rounded-xl h-12">
+                  <Users className="w-4 h-4" /> Manage Students
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Students Enrolled in {selectedCourse}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="flex gap-2">
+                    <Input value={enrollEmail} onChange={e => setEnrollEmail(e.target.value)} placeholder="Student email address" className="rounded-xl flex-1" />
+                    <Button onClick={handleEnrollStudent} className="rounded-xl">Enroll</Button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {enrollments.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No students enrolled yet.</p>
+                    ) : (
+                      enrollments.map(e => (
+                        <div key={e.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50">
+                          <span className="text-sm">{e.student_id.slice(0, 8)}...</span>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={() => handleUnenroll(e.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Tabs */}
@@ -613,9 +732,9 @@ const TeacherUpload = () => {
                                         {a.is_marks_finalized && <Badge className="text-xs gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-0"><CheckCircle className="w-3 h-3" /> Finalized</Badge>}
                                       </div>
                                       <p className="text-xs text-muted-foreground mt-0.5">
-                                        {new Date(a.created_at).toLocaleDateString()}
+                                        {a.course_code} • {new Date(a.created_at).toLocaleDateString()}
                                         {a.schedule_start && a.schedule_end && (
-                                          <span> • {formatDateTime(a.schedule_start)} – {formatDateTime(a.schedule_end)}</span>
+                                          <span> • {formatDateTime(a.schedule_start)} ({getDurationLabel(a)})</span>
                                         )}
                                       </p>
                                     </div>
@@ -640,10 +759,7 @@ const TeacherUpload = () => {
                                   <QuizBuilder
                                     assessmentId={a.id}
                                     totalMarks={a.total_marks}
-                                    existingQuestions={questionsMap[a.id]?.map(q => ({
-                                      ...q,
-                                      correct_option: q.correct_option as 'a' | 'b' | 'c' | 'd',
-                                    }))}
+                                    existingQuestions={questionsMap[a.id] || []}
                                     onSaved={() => fetchQuestions(a.id)}
                                   />
                                 )}
@@ -651,8 +767,8 @@ const TeacherUpload = () => {
                                 {/* For non-online quizzes and all other types: marks table */}
                                 {!a.is_online_quiz && renderMarksTable(a)}
 
-                                {/* For exams that ended but marks not finalized, show marks entry */}
-                                {a.is_online_quiz && scheduleStatus === 'ended' && (
+                                {/* For online quizzes that ended, show auto-graded results */}
+                                {a.is_online_quiz && getScheduleStatus(a) === 'ended' && (
                                   <div className="pt-4 border-t border-border/50">
                                     <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
                                     <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
