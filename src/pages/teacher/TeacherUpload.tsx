@@ -213,6 +213,7 @@ const TeacherUpload = () => {
     if (!user) { toast.error('Not authenticated'); return; }
 
     const isQuizTab = activeTab === 'quiz';
+    const isAssignmentTab = activeTab === 'assignment';
     const isExamTab = activeTab === 'midterm' || activeTab === 'final';
 
     // Validate schedule for online quizzes
@@ -221,19 +222,31 @@ const TeacherUpload = () => {
       return;
     }
 
-    // PDF required for non-online assessments (quizzes without online, assignments, midterms, finals)
+    // Validate deadline for assignments
+    if (isAssignmentTab && !newDeadline) {
+      toast.error('Deadline is required for assignments');
+      return;
+    }
+
+    // PDF required for non-online assessments
     if (isQuizTab && !newIsOnlineQuiz && !newFile) {
       toast.error('PDF upload is required for paper-based quizzes');
       return;
     }
-    if ((activeTab === 'assignment' || isExamTab) && !newFile) {
+    if (isAssignmentTab && !newIsOnlineAssignment && !newFile) {
+      toast.error('PDF upload is required for paper-based assignments');
+      return;
+    }
+    if (isExamTab && !newFile) {
       toast.error('PDF upload is required');
       return;
     }
 
     const scheduleEnd = isQuizTab && newIsOnlineQuiz && newScheduleStart
       ? computeEndTime(newScheduleStart, newDurationMinutes)
-      : null;
+      : isAssignmentTab && newDeadline
+        ? new Date(newDeadline).toISOString()
+        : null;
 
     setUploading(true);
     let filePath: string | null = null;
@@ -254,7 +267,7 @@ const TeacherUpload = () => {
       title: newTitle.trim(),
       total_marks: parseInt(newTotalMarks) || 100,
       file_path: filePath,
-      is_online_quiz: isQuizTab && newIsOnlineQuiz,
+      is_online_quiz: (isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment),
       schedule_start: isQuizTab && newIsOnlineQuiz ? newScheduleStart : null,
       schedule_end: scheduleEnd,
       is_marks_finalized: false,
@@ -262,8 +275,8 @@ const TeacherUpload = () => {
 
     if (error) { toast.error('Failed to create assessment'); setUploading(false); return; }
 
-    // For non-online quizzes and assignments, add default students
-    if (!(isQuizTab && newIsOnlineQuiz)) {
+    // For non-online quizzes and non-online assignments, add default students
+    if (!((isQuizTab && newIsOnlineQuiz) || (isAssignmentTab && newIsOnlineAssignment))) {
       const studentRows = defaultStudents.map(s => ({
         assessment_id: (data as Assessment).id,
         student_name: s.name,
