@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PillToggle } from "@/components/PillToggle";
 import { supabase } from '@/integrations/supabase/client';
+import { useTeacherCourses } from '@/hooks/useTeacherCourses';
 import { Calendar, Clock, FileText, ClipboardList, BookOpen, GraduationCap, CalendarDays } from 'lucide-react';
 import { gsap } from 'gsap';
 import { format, isPast, parseISO, isToday, isTomorrow, isThisWeek } from 'date-fns';
