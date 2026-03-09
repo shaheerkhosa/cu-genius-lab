@@ -800,7 +800,7 @@ const TeacherUpload = () => {
                             <CollapsibleContent>
                               <div className="px-4 pb-4 space-y-4">
                                 {/* Online quiz: show quiz builder */}
-                                {a.is_online_quiz && (
+                                {a.is_online_quiz && a.assessment_type === 'quiz' && (
                                   <QuizBuilder
                                     assessmentId={a.id}
                                     totalMarks={a.total_marks}
@@ -809,14 +809,33 @@ const TeacherUpload = () => {
                                   />
                                 )}
 
-                                {/* For non-online quizzes and all other types: marks table */}
+                                {/* Online assignment: show quiz builder for open-ended questions */}
+                                {a.is_online_quiz && a.assessment_type === 'assignment' && (
+                                  <QuizBuilder
+                                    assessmentId={a.id}
+                                    totalMarks={a.total_marks}
+                                    existingQuestions={questionsMap[a.id] || []}
+                                    onSaved={() => fetchQuestions(a.id)}
+                                  />
+                                )}
+
+                                {/* For non-online: marks table */}
                                 {!a.is_online_quiz && renderMarksTable(a)}
 
                                 {/* For online quizzes that ended, show auto-graded results */}
-                                {a.is_online_quiz && getScheduleStatus(a) === 'ended' && (
+                                {a.is_online_quiz && a.assessment_type === 'quiz' && getScheduleStatus(a) === 'ended' && (
                                   <div className="pt-4 border-t border-border/50">
                                     <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
                                     <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
+                                  </div>
+                                )}
+
+                                {/* For online assignments: marks table for manual grading */}
+                                {a.is_online_quiz && a.assessment_type === 'assignment' && (
+                                  <div className="pt-4 border-t border-border/50">
+                                    <h4 className="font-semibold text-sm mb-2">Student Submissions</h4>
+                                    <p className="text-xs text-muted-foreground mb-3">Review student answers and assign marks manually.</p>
+                                    {renderMarksTable(a)}
                                   </div>
                                 )}
                               </div>
