@@ -433,8 +433,9 @@ const TeacherUpload = () => {
   const renderCreateDialog = (tabLabel: string) => {
     const singular = tabLabel.slice(0, -1);
     const isQuizTab = activeTab === 'quiz';
+    const isAssignmentTab = activeTab === 'assignment';
     const isExamTab = activeTab === 'midterm' || activeTab === 'final';
-    const pdfRequired = isQuizTab ? !newIsOnlineQuiz : true;
+    const pdfRequired = isQuizTab ? !newIsOnlineQuiz : isAssignmentTab ? !newIsOnlineAssignment : true;
 
     return (
       <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) resetCreateForm(); }}>
@@ -443,7 +444,7 @@ const TeacherUpload = () => {
             <Plus className="w-4 h-4" /> New {singular}
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create {singular}</DialogTitle>
           </DialogHeader>
@@ -484,6 +485,17 @@ const TeacherUpload = () => {
               </div>
             )}
 
+            {/* Online assignment toggle (assignment tab only) */}
+            {isAssignmentTab && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
+                <div>
+                  <Label className="text-sm font-medium">Online Submission</Label>
+                  <p className="text-xs text-muted-foreground">Students submit answers online for you to review</p>
+                </div>
+                <Switch checked={newIsOnlineAssignment} onCheckedChange={setNewIsOnlineAssignment} />
+              </div>
+            )}
+
             {/* Schedule (online quiz only) */}
             {isQuizTab && newIsOnlineQuiz && (
               <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border/50">
@@ -505,6 +517,16 @@ const TeacherUpload = () => {
                     End time: {new Date(computeEndTime(newScheduleStart, newDurationMinutes)).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Deadline (assignment tab) */}
+            {isAssignmentTab && (
+              <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/50">
+                <Label className="text-sm font-medium flex items-center gap-1">
+                  <Clock className="w-4 h-4" /> Deadline <span className="text-destructive text-xs">*required</span>
+                </Label>
+                <Input type="datetime-local" value={newDeadline} onChange={e => setNewDeadline(e.target.value)} className="rounded-lg text-sm" />
               </div>
             )}
 
