@@ -44,6 +44,7 @@ const TeacherProgress = () => {
   }, [courses, selectedCourse]);
 
   useEffect(() => {
+    if (!selectedCourse) return;
     const fetchData = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
