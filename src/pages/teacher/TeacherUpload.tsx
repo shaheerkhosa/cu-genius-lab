@@ -200,8 +200,10 @@ const TeacherUpload = () => {
     setNewTotalMarks('100');
     setNewFile(null);
     setNewIsOnlineQuiz(false);
+    setNewIsOnlineAssignment(false);
     setNewScheduleStart('');
     setNewDurationMinutes('30');
+    setNewDeadline('');
     setNewCourseCode(selectedCourse);
   };
 
