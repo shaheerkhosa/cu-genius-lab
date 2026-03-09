@@ -1063,6 +1063,48 @@ const TeacherUpload = () => {
                     </Button>
                   </div>
 
+                  {/* Screenshot AI Upload */}
+                  {attendanceRecords.length > 0 && (
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <Label className="text-sm font-medium">Auto-detect from Screenshot</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload a screenshot from Zoom, Google Meet, or Teams showing participants. AI will match names against enrolled students and mark attendance automatically.
+                      </p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => setScreenshotFile(e.target.files?.[0] || null)}
+                          className="rounded-xl flex-1 max-w-xs"
+                        />
+                        <Button
+                          onClick={handleScreenshotUpload}
+                          disabled={!screenshotFile || screenshotParsing}
+                          variant="secondary"
+                          className="gap-2 rounded-xl"
+                        >
+                          {screenshotParsing ? (
+                            <>
+                              <span className="animate-spin">⏳</span> Analyzing...
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-4 h-4" /> Scan Screenshot
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {screenshotFile && !screenshotParsing && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" /> {screenshotFile.name}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {attendanceLoading ? (
                     <div className="text-center py-8 text-muted-foreground">Loading students...</div>
                   ) : attendanceRecords.length === 0 ? (
