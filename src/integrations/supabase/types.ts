@@ -20,6 +20,7 @@ export type Database = {
           course_code: string
           course_name: string
           created_at: string
+          file_path: string | null
           id: string
           teacher_id: string
           title: string
@@ -31,6 +32,7 @@ export type Database = {
           course_code: string
           course_name: string
           created_at?: string
+          file_path?: string | null
           id?: string
           teacher_id: string
           title: string
@@ -42,6 +44,7 @@ export type Database = {
           course_code?: string
           course_name?: string
           created_at?: string
+          file_path?: string | null
           id?: string
           teacher_id?: string
           title?: string
@@ -243,6 +246,7 @@ export type Database = {
           remarks: string | null
           student_name: string
           student_roll_number: string
+          submission_file_path: string | null
           updated_at: string
         }
         Insert: {
@@ -253,6 +257,7 @@ export type Database = {
           remarks?: string | null
           student_name: string
           student_roll_number: string
+          submission_file_path?: string | null
           updated_at?: string
         }
         Update: {
@@ -263,6 +268,7 @@ export type Database = {
           remarks?: string | null
           student_name?: string
           student_roll_number?: string
+          submission_file_path?: string | null
           updated_at?: string
         }
         Relationships: [
