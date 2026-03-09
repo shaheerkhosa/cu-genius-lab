@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
+import { PillToggle } from "@/components/PillToggle";
 import { z } from "zod";
 
 const signupSchema = z.object({
@@ -20,40 +21,66 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const portalOptions = [
+  { value: "student", label: "Student" },
+  { value: "teacher", label: "Teacher" },
+];
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [portal, setPortal] = useState("student");
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = (location.state as { from?: string })?.from || "/";
+  const redirectTo = (location.state as { from?: string })?.from || (portal === "teacher" ? "/teacher" : "/");
 
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate(redirectTo);
+        // Check role to redirect appropriately
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.role === 'teacher') {
+              navigate("/teacher");
+            } else {
+              navigate("/");
+            }
+          });
       }
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate(redirectTo);
+      if (session && event === 'SIGNED_IN') {
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.role === 'teacher') {
+              navigate("/teacher");
+            } else {
+              navigate("/");
+            }
+          });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, redirectTo]);
+  }, [navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Validate input
       const validatedData = signupSchema.parse({ username, email, password });
 
       const { data, error } = await supabase.auth.signUp({
@@ -62,6 +89,7 @@ const Auth = () => {
         options: {
           data: {
             username: validatedData.username,
+            portal_type: portal,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -74,6 +102,12 @@ const Auth = () => {
           toast.error(error.message);
         }
       } else if (data.user) {
+        // Assign role based on portal selection
+        const role = portal === "teacher" ? "teacher" : "user";
+        await supabase.from('user_roles').insert({
+          user_id: data.user.id,
+          role: role,
+        });
         toast.success("Account created successfully! You can now login.");
         setIsLogin(true);
       }
@@ -93,7 +127,6 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Validate input
       const validatedData = loginSchema.parse({ email, password });
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -109,6 +142,7 @@ const Auth = () => {
         }
       } else if (data.user) {
         toast.success("Logged in successfully!");
+        // Redirect handled by onAuthStateChange
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -121,15 +155,25 @@ const Auth = () => {
     }
   };
 
+  const isTeacher = portal === "teacher";
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
+    <div className={`min-h-screen flex items-center justify-center p-4 relative ${isTeacher ? "teacher-portal" : ""}`}>
       <DecorativeBackground />
-      
+
       <Card className="w-full max-w-md relative z-10 border-2">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center space-y-4">
           <CardTitle className="text-3xl font-bold text-primary">CUIntelligence</CardTitle>
+
+          {/* Portal pill toggle */}
+          <div className="flex justify-center">
+            <PillToggle value={portal} onChange={setPortal} options={portalOptions} />
+          </div>
+
           <CardDescription>
-            {isLogin ? "Welcome back! Login to continue" : "Create your account to get started"}
+            {isLogin
+              ? `Welcome back! Login to the ${isTeacher ? "Teacher" : "Student"} portal`
+              : `Create your ${isTeacher ? "Teacher" : "Student"} account`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -149,7 +193,7 @@ const Auth = () => {
                 />
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

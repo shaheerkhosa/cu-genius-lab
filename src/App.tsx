@@ -13,6 +13,8 @@ import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            {/* Student routes */}
             <Route path="/" element={<Index />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/estimator" element={<Estimator />} />
@@ -32,6 +35,12 @@ const App = () => (
             <Route path="/admin/documents" element={<AdminDocuments />} />
             <Route path="/study" element={<Study />} />
             <Route path="/progress" element={<Progress />} />
+            {/* Teacher routes */}
+            <Route path="/teacher" element={<TeacherDashboard />} />
+            <Route path="/teacher/audit" element={<TeacherPlaceholder title="Audit" />} />
+            <Route path="/teacher/flag-docs" element={<TeacherPlaceholder title="Flag Documents" />} />
+            <Route path="/teacher/course" element={<TeacherPlaceholder title="Course Management" />} />
+            <Route path="/teacher/progress" element={<TeacherPlaceholder title="Student Progress" />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
