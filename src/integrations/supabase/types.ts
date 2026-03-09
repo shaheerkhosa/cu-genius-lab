@@ -480,6 +480,42 @@ export type Database = {
           },
         ]
       }
+      timetable: {
+        Row: {
+          course_code: string
+          course_name: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          room: string | null
+          start_time: string
+          teacher_id: string
+        }
+        Insert: {
+          course_code: string
+          course_name: string
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          room?: string | null
+          start_time: string
+          teacher_id: string
+        }
+        Update: {
+          course_code?: string
+          course_name?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          room?: string | null
+          start_time?: string
+          teacher_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
