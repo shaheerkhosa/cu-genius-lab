@@ -148,7 +148,7 @@ const TeacherSchedule = () => {
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
           <SelectTrigger className="w-[320px] rounded-xl h-12 text-base"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {courses.map(c => (
+            {allCoursesForFilter.map(c => (
               <SelectItem key={c.code} value={c.code}>{c.code === 'ALL' ? 'All Courses' : `${c.code} — ${c.name}`}</SelectItem>
             ))}
           </SelectContent>
