@@ -132,6 +132,15 @@ const TeacherUpload = () => {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Set defaults when courses load
+  useEffect(() => {
+    if (courses.length > 0) {
+      if (!selectedCourse) setSelectedCourse(courses[0].code);
+      if (!newCourseCode) setNewCourseCode(courses[0].code);
+    }
+  }, [courses, selectedCourse, newCourseCode]);
+
   const courseName = courses.find(c => c.code === selectedCourse)?.name || '';
 
   const computeEndTime = (start: string, durationMin: string) => {
