@@ -1,10 +1,23 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const MODEL = "claude-sonnet-4-6";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+
+const SYSTEM_PROMPT = `You are an expert academic advisor and study guide creator for university students. Always format responses in clear markdown with proper headings (##, ###), bullet points, numbered lists, and bold text for emphasis. Create comprehensive, actionable, personalized study guides.
+
+For each weak CLO you receive, provide:
+- A clear explanation of what mastery looks like
+- 3-5 specific study activities
+- Recommended resources (be specific — name actual books, websites, YouTube channels)
+- Self-assessment questions
+- Estimated time to improve
+
+Format the guide with clear headings, bullet points, priority levels (High/Medium/Low), and checkboxes for tracking progress. Keep the tone motivating and supportive. Aim for 800-1200 words highly specific to the student's actual weak points.`;
 
 interface CLO {
   cloNumber: number;
@@ -27,7 +40,7 @@ serve(async (req) => {
   }
 
   try {
-    const { subjects, focusArea, ollamaUrl } = await req.json();
+    const { subjects, focusArea } = await req.json();
 
     if (!subjects || !Array.isArray(subjects) || subjects.length === 0) {
       return new Response(
@@ -36,16 +49,16 @@ serve(async (req) => {
       );
     }
 
-    if (!ollamaUrl) {
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'Ollama URL is not configured. Please set your ngrok URL in settings.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Build comprehensive prompt
     const subjectAnalysis = subjects.map((s: SubjectData) => {
-      const weakCLOsList = s.weakCLOs.map(clo => 
+      const weakCLOsList = s.weakCLOs.map(clo =>
         `  - CLO ${clo.cloNumber}: ${clo.description} (Current: ${clo.score}%)`
       ).join('\n');
 
@@ -57,123 +70,56 @@ ${weakCLOsList || '  (None - performing well)'}
 `;
     }).join('\n');
 
-    const prompt = `You are an expert academic advisor and study guide creator for university students.
-
-Generate a comprehensive, personalized study guide for a student based on their performance analysis:
+    const userPrompt = `Generate a comprehensive, personalized study guide for a student based on this performance analysis:
 
 ${subjectAnalysis}
+${focusArea ? `\n**Special Focus:** ${focusArea}` : ''}
 
-${focusArea ? `**Special Focus:** ${focusArea}` : ''}
+The guide should:
+1. Prioritize CLOs and subjects below 60%
+2. Provide specific, practical study techniques per weak CLO
+3. Suggest concrete resources (textbooks, online resources, practice problems, tutorials)
+4. Define clear, measurable goals
+5. Include a realistic study timeline (e.g., "Week 1-2: Focus on X")
+6. Address root causes (conceptual gaps, practice needs, etc.)`;
 
-Create a detailed study guide that:
-
-1. **Prioritizes weak areas**: Focus heavily on CLOs and subjects where the student scored below 60%
-2. **Provides actionable strategies**: Give specific, practical study techniques for each weak CLO
-3. **Includes resources**: Suggest textbooks, online resources, practice problems, and tutorials
-4. **Sets goals**: Define clear, measurable learning objectives
-5. **Creates a timeline**: Suggest a realistic study schedule (e.g., "Week 1-2: Focus on X")
-6. **Addresses root causes**: Identify why the student might be struggling (conceptual gaps, practice needs, etc.)
-
-For each weak CLO, provide:
-- Clear explanation of what mastery looks like
-- 3-5 specific study activities
-- Recommended resources (be specific - name actual books, websites, YouTube channels)
-- Self-assessment questions
-- Estimated time to improve
-
-Format the guide with:
-- Clear headings and sections
-- Bullet points for easy reading
-- Priority levels (High/Medium/Low)
-- Checkboxes for tracking progress
-
-Keep the tone motivating and supportive. Include encouragement and realistic expectations.
-
-Generate a study guide that is 800-1200 words, highly specific to the student's actual weak points.`;
-
-    const model = 'llama3.2:1b';
-
-    console.log('Generating study guide for subjects:', subjects.map((s: SubjectData) => s.code).join(', '));
-    console.log('Using Ollama URL:', ollamaUrl);
-    console.log('Using model:', model);
-
-    // Add timeout to prevent edge function from hanging
-    // Study guide generation can take time with Ollama, so allow 2 minutes
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+    console.log('Generating study guide for:', subjects.map((s: SubjectData) => s.code).join(', '));
 
     const startTime = Date.now();
-    let ollamaResponse;
-    try {
-      console.log('Sending request to Ollama...');
-      ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are an expert academic study guide creator for university students. Always format responses in clear markdown with proper headings (##, ###), bullet points, numbered lists, and bold text for emphasis. Create comprehensive, actionable study guides.'
-            },
-            { role: 'user', content: prompt }
-          ],
-          stream: false,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      const elapsedTime = Date.now() - startTime;
-      console.log(`Ollama request completed in ${elapsedTime}ms`);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('Ollama request timed out');
-        return new Response(
-          JSON.stringify({ error: 'Request to Ollama timed out. Please check your ngrok URL and ensure Ollama is running and responding.' }),
-          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      console.error('Failed to connect to Ollama:', error);
+    const response = await fetch(ANTHROPIC_API_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4096,
+        system: [
+          { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+        ],
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    console.log(`Anthropic request completed in ${Date.now() - startTime}ms`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Anthropic API error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to connect to Ollama. Please verify your ngrok URL is correct and Ollama is running.' }),
+        JSON.stringify({ error: `AI generation failed: ${errorText}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!ollamaResponse.ok) {
-      const errorText = await ollamaResponse.text();
-      console.error('Ollama error:', ollamaResponse.status, errorText);
-      
-      // Try to parse the error to give a more helpful message
-      let errorMessage = 'Failed to connect to Ollama. Check your ngrok URL and ensure Ollama is running.';
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.includes('not found')) {
-          errorMessage = `Model "${model}" not found in Ollama. Please run: ollama pull ${model}`;
-        } else {
-          errorMessage = errorJson.error || errorMessage;
-        }
-      } catch {
-        // If we can't parse, use default message
-      }
-      
-      return new Response(
-        JSON.stringify({ error: errorMessage }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const ollamaData = await ollamaResponse.json();
-    const studyGuide = ollamaData.message?.content;
+    const data = await response.json();
+    const studyGuide = data.content?.[0]?.text;
 
     if (!studyGuide) {
       throw new Error('No content in AI response');
     }
-
-    console.log('Study guide generated successfully');
 
     return new Response(
       JSON.stringify({

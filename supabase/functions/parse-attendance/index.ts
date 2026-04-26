@@ -5,6 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MODEL = "claude-sonnet-4-6";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+
+interface EnrolledStudent {
+  student_id?: string;
+  student_name: string;
+  student_email: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,15 +27,17 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }), {
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const studentList = enrolled_students.map((s: any) => `- ${s.student_name} (${s.student_email})`).join("\n");
+    const studentList = enrolled_students
+      .map((s: EnrolledStudent) => `- ${s.student_name} (${s.student_email})`)
+      .join("\n");
 
     const systemPrompt = `You are an attendance extraction agent. You will receive a screenshot from an online class (Zoom, Google Meet, Microsoft Teams, or similar).
 
@@ -39,81 +50,88 @@ Your task:
 Enrolled students:
 ${studentList}
 
-You MUST call the mark_attendance function with your results. Only include students from the enrolled list.`;
+You MUST call the mark_attendance tool with your results. Only include students from the enrolled list.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // image_base64 may arrive as either a raw base64 string or a data URL.
+    let mediaType = "image/png";
+    let imageData = image_base64;
+    const dataUrlMatch = /^data:(image\/[a-zA-Z+]+);base64,(.+)$/.exec(image_base64);
+    if (dataUrlMatch) {
+      mediaType = dataUrlMatch[1];
+      imageData = dataUrlMatch[2];
+    }
+
+    const response = await fetch(ANTHROPIC_API_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: MODEL,
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: [
+          {
+            name: "mark_attendance",
+            description: "Mark attendance for enrolled students based on the screenshot analysis",
+            input_schema: {
+              type: "object",
+              properties: {
+                attendance: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      student_id: { type: "string", description: "The student's ID" },
+                      student_name: { type: "string", description: "The student's name" },
+                      status: {
+                        type: "string",
+                        enum: ["present", "absent"],
+                        description: "Whether the student was found in the screenshot",
+                      },
+                      matched_name: {
+                        type: "string",
+                        description: "The name from the screenshot that matched this student, or empty if absent",
+                      },
+                    },
+                    required: ["student_id", "student_name", "status"],
+                  },
+                },
+              },
+              required: ["attendance"],
+            },
+          },
+        ],
+        tool_choice: { type: "tool", name: "mark_attendance" },
         messages: [
-          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
               {
-                type: "text",
-                text: "Here is the screenshot from the online class. Please identify which enrolled students are present and which are absent.",
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: imageData },
               },
               {
-                type: "image_url",
-                image_url: { url: `data:image/png;base64,${image_base64}` },
+                type: "text",
+                text: "Here is the screenshot from the online class. Please identify which enrolled students are present and which are absent.",
               },
             ],
           },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "mark_attendance",
-              description: "Mark attendance for enrolled students based on the screenshot analysis",
-              parameters: {
-                type: "object",
-                properties: {
-                  attendance: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        student_id: { type: "string", description: "The student's ID" },
-                        student_name: { type: "string", description: "The student's name" },
-                        status: { type: "string", enum: ["present", "absent"], description: "Whether the student was found in the screenshot" },
-                        matched_name: { type: "string", description: "The name from the screenshot that matched this student, or null if absent" },
-                      },
-                      required: ["student_id", "student_name", "status"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["attendance"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "mark_attendance" } },
       }),
     });
 
     if (!response.ok) {
+      const text = await response.text();
+      console.error("Anthropic API error:", response.status, text);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds to continue." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -121,18 +139,16 @@ You MUST call the mark_attendance function with your results. Only include stude
     }
 
     const result = await response.json();
-    const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUseBlock = result.content?.find((b: { type: string }) => b.type === "tool_use");
 
-    if (!toolCall?.function?.arguments) {
+    if (!toolUseBlock?.input) {
       return new Response(JSON.stringify({ error: "AI did not return structured attendance data" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const attendanceData = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify(attendanceData), {
+    return new Response(JSON.stringify(toolUseBlock.input), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { SubjectCard } from '@/components/SubjectCard';
 import { SubjectDetailModal } from '@/components/SubjectDetailModal';
 import { StudyGuideDisplay } from '@/components/StudyGuideDisplay';
-import { OllamaSettings, getOllamaUrl } from '@/components/OllamaSettings';
 import { sampleStudent } from '@/data/sampleStudentData';
 import { getCurrentSemesterPerformance, SubjectPerformance, getSubjectColor } from '@/lib/performanceAnalyzer';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,6 @@ const Study = () => {
   const [focusArea, setFocusArea] = useState('');
   const [generating, setGenerating] = useState(false);
   const [studyGuide, setStudyGuide] = useState<string | null>(null);
-  const [ollamaUrl, setOllamaUrl] = useState(getOllamaUrl());
 
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -94,15 +92,6 @@ const Study = () => {
       return;
     }
 
-    if (!ollamaUrl) {
-      toast({
-        title: 'Ollama Not Configured',
-        description: 'Please set your Ollama ngrok URL in the settings above',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setGenerating(true);
     setStudyGuide(null);
 
@@ -122,7 +111,6 @@ const Study = () => {
         body: {
           subjects: selectedSubjectData,
           focusArea: focusArea || undefined,
-          ollamaUrl,
         },
       });
 
@@ -178,11 +166,6 @@ const Study = () => {
             <p className="text-muted-foreground text-lg">
               Generate personalized study guides for your current semester courses
             </p>
-          </div>
-
-          {/* Ollama Settings */}
-          <div className="max-w-2xl mx-auto">
-            <OllamaSettings onUrlChange={setOllamaUrl} />
           </div>
 
           {/* Subject Selection */}

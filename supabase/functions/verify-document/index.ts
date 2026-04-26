@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -6,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const MODEL = "claude-sonnet-4-6";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 const THRESHOLDS = {
   AUTO_APPROVE: 70,
@@ -76,12 +78,11 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
 
-    // Call Lovable AI for document analysis
     const prompt = `You are an expert document verification system for Pakistani educational and official documents.
 
 Analyze this ${docTypeInfo.name} and verify its authenticity by checking for the following elements:
@@ -101,58 +102,92 @@ Also assess:
 Return a verification score from 0-100 where:
 - 70-100: Document appears authentic and meets quality standards
 - 40-69: Document has concerns that require manual review
-- 0-39: Document appears fraudulent or has critical quality issues
+- 0-39: Document appears fraudulent or has critical quality issues`;
 
-Format your response as JSON with this structure:
-{
-  "score": <number 0-100>,
-  "document_type_match": <boolean>,
-  "elements_found": [
-    {"name": "<element name>", "found": <boolean>, "confidence": <0-1>}
-  ],
-  "quality_assessment": "<poor|fair|good|excellent>",
-  "issues": [
-    {"type": "<warning|error>", "message": "<description>"}
-  ],
-  "recommendation": "<brief explanation>"
-}`;
+    // Parse image — accept both raw base64 and data URLs
+    let mediaType = "image/jpeg";
+    let imageData = imageBase64;
+    const dataUrlMatch = /^data:(image\/[a-zA-Z+]+);base64,(.+)$/.exec(imageBase64);
+    if (dataUrlMatch) {
+      mediaType = dataUrlMatch[1];
+      imageData = dataUrlMatch[2];
+    }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: MODEL,
+        max_tokens: 2048,
+        system: 'You are a document verification AI. Always respond with valid JSON only — no preamble, no markdown fences.',
+        tools: [
+          {
+            name: "report_verification",
+            description: "Report the verification result for the document",
+            input_schema: {
+              type: "object",
+              properties: {
+                score: { type: "number", description: "Verification score 0-100" },
+                document_type_match: { type: "boolean" },
+                elements_found: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string" },
+                      found: { type: "boolean" },
+                      confidence: { type: "number" },
+                    },
+                    required: ["name", "found", "confidence"],
+                  },
+                },
+                quality_assessment: {
+                  type: "string",
+                  enum: ["poor", "fair", "good", "excellent"],
+                },
+                issues: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string", enum: ["warning", "error"] },
+                      message: { type: "string" },
+                    },
+                    required: ["type", "message"],
+                  },
+                },
+                recommendation: { type: "string" },
+              },
+              required: ["score", "document_type_match", "elements_found", "quality_assessment", "issues", "recommendation"],
+            },
+          },
+        ],
+        tool_choice: { type: "tool", name: "report_verification" },
         messages: [
-          { role: 'system', content: 'You are a document verification AI. Always respond with valid JSON only.' },
           {
             role: 'user',
             content: [
-              { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: imageBase64 } }
-            ]
-          }
+              { type: "image", source: { type: "base64", media_type: mediaType, data: imageData } },
+              { type: "text", text: prompt },
+            ],
+          },
         ],
       }),
     });
 
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Anthropic API error:', aiResponse.status, errorText);
       if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your Lovable AI workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errorText);
       return new Response(
         JSON.stringify({ error: 'AI verification failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -160,34 +195,20 @@ Format your response as JSON with this structure:
     }
 
     const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content;
-    
-    if (!aiContent) {
-      throw new Error('No content in AI response');
+    const toolUseBlock = aiData.content?.find((b: { type: string }) => b.type === "tool_use");
+
+    if (!toolUseBlock?.input) {
+      throw new Error('AI did not return a verification result');
     }
 
-    // Parse JSON from AI response
-    let verificationResult;
-    try {
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        verificationResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in AI response');
-      }
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', aiContent);
-      throw new Error('Failed to parse AI verification result');
-    }
-
+    const verificationResult = toolUseBlock.input;
     const status = determineStatus(verificationResult.score);
-    const flaggedReason = status === 'flagged' 
-      ? `Score: ${verificationResult.score}/100. Issues: ${verificationResult.issues?.map((i: any) => i.message).join(', ')}`
+    const flaggedReason = status === 'flagged'
+      ? `Score: ${verificationResult.score}/100. Issues: ${verificationResult.issues?.map((i: { message: string }) => i.message).join(', ')}`
       : status === 'rejected'
       ? `Document rejected: Score ${verificationResult.score}/100. ${verificationResult.recommendation}`
       : null;
 
-    // Update document in database
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);

@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -6,9 +5,38 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MODEL = "claude-sonnet-4-6";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+
 interface Message {
   role: string;
   content: string;
+}
+
+async function callClaude(body: Record<string, unknown>) {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const response = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Anthropic API error (${response.status}): ${errorText}`);
+  }
+
+  return await response.json();
+}
+
+function normalizeRole(role: string): "user" | "assistant" {
+  return role === "assistant" ? "assistant" : "user";
 }
 
 serve(async (req) => {
@@ -17,129 +45,70 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, ollamaUrl, summary, generateSummary } = await req.json();
+    const { messages, summary, generateSummary } = await req.json();
 
-    if (!ollamaUrl) {
-      return new Response(JSON.stringify({ error: "Ollama URL is required" }), {
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "messages[] is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const model = "llama3.2:latest";
-
-    // If we're generating a summary, use a special prompt
     if (generateSummary) {
-      console.log("Generating summary for conversation...");
+      const conversationText = messages
+        .map((m: Message) => `${m.role}: ${m.content}`)
+        .join("\n");
 
-      const summaryPrompt = `Summarize this conversation in 2-3 short sentences, capturing the key topics and any important facts mentioned. Be concise.
-
-Conversation:
-${messages.map((m: Message) => `${m.role}: ${m.content}`).join("\n")}
-
-Summary:`;
-
-      const summaryResponse = await fetch(`${ollamaUrl}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: model,
-          messages: [
-            {
-              role: "system",
-              content: "You are a helpful assistant that summarizes conversations concisely.",
-            },
-            {
-              role: "user",
-              content: `Summarize this conversation in 2-3 short sentences, capturing the key topics and any important facts mentioned. Be concise.\n\nConversation:\n${messages.map((m: Message) => `${m.role}: ${m.content}`).join("\n")}`,
-            },
-          ],
-          stream: false,
-        }),
+      const data = await callClaude({
+        model: MODEL,
+        max_tokens: 256,
+        system: "You are a helpful assistant that summarizes conversations concisely.",
+        messages: [
+          {
+            role: "user",
+            content:
+              `Summarize this conversation in 2-3 short sentences, capturing the key topics and any important facts mentioned. Be concise.\n\nConversation:\n${conversationText}`,
+          },
+        ],
       });
 
-      if (!summaryResponse.ok) {
-        const errorText = await summaryResponse.text();
-        console.error("Summary generation error:", errorText);
-        return new Response(JSON.stringify({ error: `Summary error: ${errorText}` }), {
-          status: summaryResponse.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const summaryData = await summaryResponse.json();
-      const summaryContent = summaryData.message?.content || "";
-      console.log("Generated summary:", summaryContent);
-
+      const summaryContent = data.content?.[0]?.text ?? "";
       return new Response(JSON.stringify({ summary: summaryContent }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Normal chat - use /api/chat for proper conversation context
-    console.log("Connecting to Ollama at:", ollamaUrl);
-    console.log("Using model:", model);
-    console.log("Summary:", summary || "None");
-    console.log("Messages count:", messages.length);
+    const recent = messages.slice(-2).map((m: Message) => ({
+      role: normalizeRole(m.role),
+      content: m.content,
+    }));
 
-    // Build structured messages for chat endpoint
-    const chatMessages: { role: string; content: string }[] = [];
-
-    // Add summary as system context if available
-    if (summary) {
-      chatMessages.push({
-        role: "system",
-        content: `Previous conversation context: ${summary}`,
-      });
+    if (recent[0]?.role !== "user") {
+      recent.unshift({ role: "user", content: "(continuing)" });
     }
 
-    // Only use last 2 messages (1 exchange) for speed
-    const recentMessages = messages.slice(-2);
-    console.log("Using last", recentMessages.length, "messages");
+    const systemPrompt = summary
+      ? `You are a helpful assistant. Previous conversation context: ${summary}`
+      : "You are a helpful assistant.";
 
-    // Add recent messages with proper roles
-    recentMessages.forEach((msg: Message) => {
-      chatMessages.push({
-        role: msg.role,
-        content: msg.content,
-      });
+    const data = await callClaude({
+      model: MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: recent,
     });
 
-    console.log("Chat messages count:", chatMessages.length);
-
-    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: model,
-        messages: chatMessages,
-        stream: false,
-      }),
-    });
-
-    if (!ollamaResponse.ok) {
-      const errorText = await ollamaResponse.text();
-      console.error("Ollama API error:", errorText);
-      return new Response(JSON.stringify({ error: `Ollama API error: ${errorText}` }), {
-        status: ollamaResponse.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await ollamaResponse.json();
-    // /api/chat returns { message: { role, content }, done }
-    const responseContent = data.message?.content || "";
-    console.log("Ollama response received, length:", responseContent.length);
+    const responseContent = data.content?.[0]?.text ?? "";
 
     return new Response(
       JSON.stringify({
         message: { content: responseContent },
-        done: data.done,
+        done: data.stop_reason === "end_turn",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error in chat-ollama function:", error);
+    console.error("chat-ollama error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
