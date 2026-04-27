@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.moved-aside
+*.xccheckout
+
+# Secrets
+CUOnline/Config.xcconfig
+
+# SwiftPM
+.swiftpm/
+.build/
+Package.resolved
+
+# Pods (not used, but ignored just in case)
+Pods/
