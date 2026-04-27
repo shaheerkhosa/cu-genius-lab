@@ -1,4 +1,4 @@
-import { MessageCircle, Upload, BookOpen, TrendingUp, LogOut, Menu, CalendarDays } from "lucide-react";
+import { MessageCircle, Upload, BookOpen, TrendingUp, LogOut, Menu, CalendarDays, KeyRound } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -23,6 +23,10 @@ const menuItems = [
   { title: "Schedule", url: "/teacher/schedule", icon: CalendarDays },
   { title: "Course", url: "/teacher/course", icon: BookOpen },
   { title: "Progress", url: "/teacher/progress", icon: TrendingUp },
+];
+
+const accountMenuItems = [
+  { title: "Change Password", url: "/account/change-password", icon: KeyRound },
 ];
 
 export function TeacherSidebar() {
@@ -73,6 +77,31 @@ export function TeacherSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/teacher"}
+                      className={({ isActive }) =>
+                        `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
+                          isActive
+                            ? "bg-primary/15 text-primary font-semibold border-2 border-primary/30"
+                            : "text-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
+                        }`
+                      }
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+
+              <Separator className="my-3" />
+              {accountMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={{ children: item.title, hidden: open }}
+                    className="h-12"
+                  >
+                    <NavLink
+                      to={item.url}
                       className={({ isActive }) =>
                         `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
                           isActive

@@ -12,6 +12,7 @@ import AdminDocuments from "./pages/AdminDocuments";
 import Study from "./pages/Study";
 import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
+import ChangePassword from "./pages/ChangePassword";
 import StudentQuiz from "./pages/StudentQuiz";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,8 @@ const App = () => (
             <Route path="/progress" element={<Progress />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/quizzes" element={<StudentQuiz />} />
+            {/* Account routes (shared by student + teacher) */}
+            <Route path="/account/change-password" element={<ChangePassword />} />
             {/* Teacher routes */}
             <Route path="/teacher" element={<TeacherDashboard />} />
             <Route path="/teacher/upload" element={<TeacherUpload />} />

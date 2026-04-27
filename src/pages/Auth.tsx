@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { PillToggle } from "@/components/PillToggle";
+import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
 import { z } from "zod";
 import { usePortalTheme } from "@/hooks/usePortalTheme";
 
@@ -142,6 +143,8 @@ const Auth = () => {
     }
   };
 
+  const [forgotOpen, setForgotOpen] = useState(false);
+
   const isTeacher = portal === "teacher";
 
   return (
@@ -217,6 +220,25 @@ const Auth = () => {
               {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
             </Button>
           </form>
+
+          {isLogin && (
+            <div className="mt-3 text-right">
+              <button
+                type="button"
+                onClick={() => setForgotOpen(true)}
+                className="text-sm text-primary hover:underline disabled:opacity-50"
+                disabled={loading}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
+          <ForgotPasswordDialog
+            open={forgotOpen}
+            onOpenChange={setForgotOpen}
+            defaultEmail={email}
+          />
 
           <div className="mt-4 text-center">
             <button

@@ -9,6 +9,7 @@ import { Send, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatLanding } from "@/components/ChatLanding";
+import ReactMarkdown from "react-markdown";
 import { useConversations } from "@/hooks/useConversations";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -270,7 +271,34 @@ const Chat = () => {
                             : "bg-muted text-foreground"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.role === "assistant" ? (
+                          <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="leading-relaxed">{children}</p>,
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                code: ({ children }) => (
+                                  <code className="bg-background/60 px-1.5 py-0.5 rounded text-xs font-mono">
+                                    {children}
+                                  </code>
+                                ),
+                                a: ({ href, children }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
+                                    {children}
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )}
                         {message.role === "assistant" && message.citations && message.citations.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-border/50">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">

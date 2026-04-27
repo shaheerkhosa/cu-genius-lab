@@ -1,5 +1,20 @@
 project_id = "bwiliqlcfvrlnvwgblsp"
 
+# Password reset uses Supabase Auth's built-in OTP recovery. The template
+# below uses {{ .Token }} (a 6-digit code) instead of the default magic link
+# so the reset flow works on iOS and on the web at any port — no domain or
+# redirect URL juggling required.
+[auth.email]
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "1m0s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.recovery]
+subject = "Your CUOnline password reset code"
+content_path = "./supabase/templates/recovery.html"
+
 [functions.chat-ollama]
 verify_jwt = true
 

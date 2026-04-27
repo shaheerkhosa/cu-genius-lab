@@ -1,4 +1,4 @@
-import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield, Menu, ClipboardList, CalendarDays } from "lucide-react";
+import { MessageCircle, PieChart, FileText, BookOpen, TrendingUp, LogOut, Shield, Menu, ClipboardList, CalendarDays, KeyRound } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -26,6 +26,10 @@ const menuItems = [
   { title: "Schedule", url: "/schedule", icon: CalendarDays },
   { title: "Study", url: "/study", icon: BookOpen },
   { title: "Progress", url: "/progress", icon: TrendingUp },
+];
+
+const accountMenuItems = [
+  { title: "Change Password", url: "/account/change-password", icon: KeyRound },
 ];
 
 const adminMenuItems = [
@@ -102,6 +106,31 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
               
+              <Separator className="my-3" />
+              {accountMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={{ children: item.title, hidden: open }}
+                    className="h-12"
+                  >
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        `flex items-center ${open ? 'gap-3 px-3' : 'justify-center px-0'} py-3 rounded-xl transition-all ${
+                          isActive
+                            ? "bg-primary/15 text-primary font-semibold border-2 border-primary/30"
+                            : "text-foreground hover:bg-sidebar-accent/50 border-2 border-transparent"
+                        }`
+                      }
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {open && <span className="truncate">{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+
               {/* Admin-only menu items */}
               {isAdmin && (
                 <>
