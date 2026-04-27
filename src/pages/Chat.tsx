@@ -5,7 +5,7 @@ import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatLanding } from "@/components/ChatLanding";
@@ -160,7 +160,7 @@ const Chat = () => {
       const data = await response.json();
 
       if (data.message?.content) {
-        await addMessage(convId, "assistant", data.message.content);
+        await addMessage(convId, "assistant", data.message.content, data.message.citations);
         
         // Generate summary every 4 messages (in background)
         if (shouldGenerateSummary()) {
@@ -271,6 +271,25 @@ const Chat = () => {
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.role === "assistant" && message.citations && message.citations.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                              <BookOpen className="h-3 w-3" />
+                              <span className="font-medium">Sources</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {message.citations.map((c) => (
+                                <span
+                                  key={c.slug}
+                                  className="inline-flex items-center gap-1 text-xs bg-background/80 border border-border rounded-full px-2 py-0.5 text-muted-foreground"
+                                  title={`${c.source} • ${c.slug}`}
+                                >
+                                  {c.title}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

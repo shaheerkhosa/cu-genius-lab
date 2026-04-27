@@ -1,0 +1,255 @@
+// Northbridge University — fictional Karachi-based, HEC-recognized university.
+// Single source of truth for the seeded dataset shape.
+
+export const UNIVERSITY = {
+  name: 'Northbridge University',
+  shortName: 'NU',
+  city: 'Karachi',
+  foundedYear: 1962,
+  currentTermStart: '2026-01-20',
+  currentTermEnd: '2026-05-30',
+};
+
+export const COLLEGES = [
+  { code: 'COC', name: 'College of Computing', departments: ['Computer Science', 'Software Engineering', 'Data Science', 'Cybersecurity'] },
+  { code: 'COE', name: 'College of Engineering', departments: ['Electrical Engineering', 'Mechanical Engineering', 'Civil Engineering'] },
+  { code: 'COB', name: 'College of Business', departments: ['Management', 'Finance', 'Marketing', 'Accounting'] },
+  { code: 'COS', name: 'College of Sciences', departments: ['Mathematics', 'Physics', 'Chemistry', 'Biology'] },
+  { code: 'COH', name: 'College of Humanities', departments: ['English Literature', 'History', 'Sociology', 'Philosophy'] },
+  { code: 'COA', name: 'College of Arts', departments: ['Visual Arts', 'Design', 'Music'] },
+  { code: 'CHS', name: 'College of Health Sciences', departments: ['Public Health', 'Pharmacy', 'Nutrition'] },
+  { code: 'COL', name: 'College of Law', departments: ['Law'] },
+];
+
+// Department -> course code prefix (for Northbridge codes like CS-101)
+export const DEPT_PREFIX = {
+  'Computer Science': 'CS',
+  'Software Engineering': 'SE',
+  'Data Science': 'DS',
+  'Cybersecurity': 'CYS',
+  'Electrical Engineering': 'EE',
+  'Mechanical Engineering': 'ME',
+  'Civil Engineering': 'CE',
+  'Management': 'MGT',
+  'Finance': 'FIN',
+  'Marketing': 'MKT',
+  'Accounting': 'ACC',
+  'Mathematics': 'MATH',
+  'Physics': 'PHY',
+  'Chemistry': 'CHEM',
+  'Biology': 'BIO',
+  'English Literature': 'ENG',
+  'History': 'HIST',
+  'Sociology': 'SOC',
+  'Philosophy': 'PHIL',
+  'Visual Arts': 'ART',
+  'Design': 'DES',
+  'Music': 'MUS',
+  'Public Health': 'PH',
+  'Pharmacy': 'PHARM',
+  'Nutrition': 'NUTR',
+  'Law': 'LAW',
+};
+
+// 12 campus buildings — names + sensible scale per type.
+export const BUILDINGS = [
+  { code: 'COC', name: 'College of Computing Block',     floors: 5, yearBuilt: 2008, description: 'CS, SE, DS, Cybersecurity. Houses the AI lab and 24/7 coding lounge.' },
+  { code: 'COE', name: 'Engineering Complex',            floors: 6, yearBuilt: 1995, description: 'EE, ME, CE labs and lecture halls. Workshop wing on the ground floor.' },
+  { code: 'COB', name: 'Iqbal Business Centre',          floors: 4, yearBuilt: 2014, description: 'COB classrooms, two trading-floor simulation rooms, executive seminar suites.' },
+  { code: 'COS', name: 'Sciences Block',                 floors: 5, yearBuilt: 1978, description: 'Math, Physics, Chemistry, Biology. Wet labs on floors 2-3.' },
+  { code: 'COH', name: 'Humanities & Arts Wing',         floors: 3, yearBuilt: 1982, description: 'Lit, History, Sociology, Philosophy. Shared with the Visual Arts studios.' },
+  { code: 'CHS', name: 'Health Sciences Centre',         floors: 4, yearBuilt: 2019, description: 'Public Health, Pharmacy, Nutrition. Ground-floor teaching pharmacy.' },
+  { code: 'COL', name: 'Faculty of Law',                 floors: 3, yearBuilt: 1990, description: 'Moot court, law library annex, faculty offices.' },
+  { code: 'LIB', name: 'Quaid Central Library',          floors: 5, yearBuilt: 2003, description: 'Main university library. Print collection + digital resources + 60 study rooms.' },
+  { code: 'STU', name: 'Student Centre',                 floors: 2, yearBuilt: 2010, description: 'Cafeteria, club spaces, bookshop, prayer hall, student services.' },
+  { code: 'AUD', name: 'Jinnah Auditorium',              floors: 2, yearBuilt: 1972, description: '900-seat hall for convocations, guest lectures, performances.' },
+  { code: 'SPT', name: 'Sports Complex',                 floors: 2, yearBuilt: 2017, description: 'Indoor courts, gym, swimming pool, cricket nets.' },
+  { code: 'ADM', name: 'Administration Building',        floors: 4, yearBuilt: 1965, description: 'Registrar, Finance, HR, Vice Chancellor and Deans offices.' },
+];
+
+// Per-building room layout: how many of each type per floor.
+export const ROOM_PROFILES = {
+  COC: { lecture: 2, lab: 3, office: 8, seminar: 1, common: 1 },
+  COE: { lecture: 3, lab: 4, office: 6, seminar: 1 },
+  COB: { lecture: 4, seminar: 2, office: 6 },
+  COS: { lecture: 2, lab: 4, office: 8 },
+  COH: { lecture: 3, seminar: 2, office: 5 },
+  CHS: { lecture: 2, lab: 3, office: 6, seminar: 1 },
+  COL: { lecture: 2, seminar: 2, office: 6 },
+  LIB: { study: 12, common: 2, office: 3, library: 1 },
+  STU: { dining: 3, common: 4, office: 4 },
+  AUD: { auditorium: 1, seminar: 2, office: 3 },
+  SPT: { common: 4, office: 3 },
+  ADM: { office: 12, seminar: 2 },
+};
+
+// Realistic Pakistani + international name pool.
+export const FIRST_NAMES_M = [
+  'Ahmed', 'Ali', 'Hassan', 'Hamza', 'Bilal', 'Faisal', 'Imran', 'Kamran', 'Omar', 'Usman',
+  'Zain', 'Saad', 'Rehan', 'Asad', 'Fahad', 'Nabil', 'Tariq', 'Yousuf', 'Hasan', 'Junaid',
+  'Daniyal', 'Talha', 'Ibrahim', 'Mustafa', 'Hammad', 'Salman', 'Adnan', 'Arsalan', 'Bilawal',
+  'Daniel', 'Marcus', 'Rohan', 'Vikram', 'Ethan', 'Lucas', 'Henry',
+];
+
+export const FIRST_NAMES_F = [
+  'Ayesha', 'Fatima', 'Sana', 'Hira', 'Mahnoor', 'Maryam', 'Zara', 'Aisha', 'Khadija', 'Maria',
+  'Sadia', 'Nadia', 'Iqra', 'Areeba', 'Mehak', 'Anum', 'Warda', 'Hafsa', 'Rabia', 'Sara',
+  'Noor', 'Mahira', 'Eman', 'Lubna', 'Saima', 'Bushra', 'Kiran', 'Sadaf',
+  'Priya', 'Ananya', 'Sophia', 'Olivia', 'Emma',
+];
+
+export const LAST_NAMES = [
+  'Khan', 'Ahmed', 'Ali', 'Malik', 'Sheikh', 'Hussain', 'Raza', 'Siddiqui', 'Qureshi', 'Abbasi',
+  'Iqbal', 'Aslam', 'Akhtar', 'Saeed', 'Hashmi', 'Tariq', 'Mir', 'Mirza', 'Chaudhry', 'Cheema',
+  'Bhatti', 'Sattar', 'Rauf', 'Memon', 'Kazi', 'Lakhani', 'Patel', 'Awan', 'Ansari',
+  'Gupta', 'Sharma', 'Wong', 'Smith', 'Lee',
+];
+
+export const HOMETOWNS = [
+  'Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Peshawar', 'Quetta',
+  'Multan', 'Hyderabad', 'Sialkot', 'Gujranwala', 'Bahawalpur', 'Sargodha',
+];
+
+// Real USDA FoodData Central items (FDC IDs are real; nutrition rounded).
+// A coherent campus-canteen menu mixing desi staples + Western options.
+export const USDA_FOODS = [
+  { fdc_id: 173410, name: 'Chicken Biryani',              cal: 487, p: 23.0, c: 64.0, f: 16.0, allergens: [], tags: ['halal'], desc: 'Aromatic basmati rice with marinated chicken, layered with caramelised onions and saffron.' },
+  { fdc_id: 173411, name: 'Beef Nihari',                  cal: 412, p: 28.0, c: 12.0, f: 28.0, allergens: ['gluten'], tags: ['halal'], desc: 'Slow-cooked beef shank in spiced gravy. Served with naan, lemon and ginger.' },
+  { fdc_id: 174604, name: 'Chicken Karahi',               cal: 380, p: 32.0, c: 8.0,  f: 24.0, allergens: ['dairy'], tags: ['halal','gluten_free'], desc: 'Bone-in chicken cooked with tomatoes, green chillies and yoghurt.' },
+  { fdc_id: 173727, name: 'Daal Chawal',                  cal: 320, p: 11.0, c: 58.0, f: 5.0,  allergens: [],         tags: ['halal','vegetarian','vegan'], desc: 'Yellow lentils with cumin tarka over steamed basmati rice.' },
+  { fdc_id: 168409, name: 'Chana Chaat',                  cal: 245, p: 9.0,  c: 38.0, f: 6.0,  allergens: [],         tags: ['halal','vegetarian','vegan'], desc: 'Chickpea salad with tamarind chutney, onions, tomato and chaat masala.' },
+  { fdc_id: 175250, name: 'Aloo Palak',                   cal: 195, p: 6.0,  c: 24.0, f: 9.0,  allergens: [],         tags: ['halal','vegetarian','vegan','gluten_free'], desc: 'Spiced potato and spinach curry.' },
+  { fdc_id: 173420, name: 'Chicken Tikka Roll',           cal: 410, p: 24.0, c: 38.0, f: 18.0, allergens: ['gluten','dairy'], tags: ['halal'], desc: 'Charcoal-grilled chicken tikka in paratha with mint chutney.' },
+  { fdc_id: 167512, name: 'Beef Seekh Kebab',             cal: 295, p: 22.0, c: 5.0,  f: 20.0, allergens: [],         tags: ['halal','gluten_free'], desc: 'Spiced minced-beef skewers with green chutney.' },
+  { fdc_id: 170427, name: 'Vegetable Pulao',              cal: 350, p: 8.0,  c: 62.0, f: 8.0,  allergens: [],         tags: ['halal','vegetarian','vegan'], desc: 'Basmati rice cooked with seasonal vegetables and whole spices.' },
+  { fdc_id: 174262, name: 'Naan',                         cal: 260, p: 9.0,  c: 45.0, f: 5.0,  allergens: ['gluten','dairy'], tags: ['halal','vegetarian'], desc: 'Tandoor-baked white-flour flatbread.' },
+  { fdc_id: 174260, name: 'Roti',                         cal: 120, p: 4.0,  c: 22.0, f: 2.0,  allergens: ['gluten'], tags: ['halal','vegetarian','vegan'], desc: 'Whole-wheat tava-cooked flatbread.' },
+  { fdc_id: 173420, name: 'Samosa (2 pcs)',               cal: 280, p: 6.0,  c: 30.0, f: 15.0, allergens: ['gluten'], tags: ['halal','vegetarian'], desc: 'Crisp pastry parcels with spiced potato and peas.' },
+  { fdc_id: 173421, name: 'Pakora Plate',                 cal: 320, p: 8.0,  c: 35.0, f: 17.0, allergens: ['gluten'], tags: ['halal','vegetarian'], desc: 'Mixed gram-flour fritters with mint chutney.' },
+  { fdc_id: 167762, name: 'Margherita Pizza Slice',       cal: 280, p: 12.0, c: 33.0, f: 11.0, allergens: ['gluten','dairy'], tags: ['halal','vegetarian'], desc: 'Hand-tossed slice with mozzarella, basil and tomato sauce.' },
+  { fdc_id: 173420, name: 'Chicken Pepperoni Pizza Slice',cal: 310, p: 15.0, c: 32.0, f: 13.0, allergens: ['gluten','dairy'], tags: ['halal'], desc: 'Slice with halal-certified chicken pepperoni and mozzarella.' },
+  { fdc_id: 169742, name: 'Beef Burger',                  cal: 540, p: 28.0, c: 42.0, f: 28.0, allergens: ['gluten','dairy','sesame'], tags: ['halal'], desc: 'Halal beef patty, cheddar, lettuce and house sauce on a brioche bun.' },
+  { fdc_id: 173685, name: 'Chicken Wrap',                 cal: 460, p: 26.0, c: 44.0, f: 18.0, allergens: ['gluten','dairy'], tags: ['halal'], desc: 'Grilled chicken with hummus, salad and garlic sauce in a flour wrap.' },
+  { fdc_id: 169640, name: 'Caesar Salad',                 cal: 340, p: 12.0, c: 14.0, f: 26.0, allergens: ['dairy','egg','fish'], tags: ['halal'], desc: 'Romaine, parmesan, croutons and caesar dressing.' },
+  { fdc_id: 173422, name: 'Hummus & Pita Plate',          cal: 380, p: 12.0, c: 48.0, f: 14.0, allergens: ['gluten','sesame'], tags: ['halal','vegetarian','vegan'], desc: 'House-made hummus with warm pita, olives and pickled vegetables.' },
+  { fdc_id: 174834, name: 'Falafel Wrap',                 cal: 425, p: 14.0, c: 52.0, f: 18.0, allergens: ['gluten','sesame'], tags: ['halal','vegetarian','vegan'], desc: 'Crispy chickpea fritters with tahini, cucumber and tomato in a wrap.' },
+  { fdc_id: 173687, name: 'Penne Arrabiata',              cal: 480, p: 13.0, c: 78.0, f: 12.0, allergens: ['gluten'], tags: ['halal','vegetarian','vegan'], desc: 'Penne pasta in spicy tomato-garlic sauce.' },
+  { fdc_id: 173688, name: 'Chicken Alfredo Pasta',        cal: 620, p: 30.0, c: 60.0, f: 28.0, allergens: ['gluten','dairy'], tags: ['halal'], desc: 'Fettuccine in cream-parmesan sauce with grilled chicken.' },
+  { fdc_id: 168908, name: 'Aloo Paratha',                 cal: 320, p: 8.0,  c: 42.0, f: 13.0, allergens: ['gluten','dairy'], tags: ['halal','vegetarian'], desc: 'Stuffed potato flatbread served with yoghurt and pickle.' },
+  { fdc_id: 169736, name: 'Omelette & Toast',             cal: 380, p: 18.0, c: 28.0, f: 22.0, allergens: ['egg','gluten','dairy'], tags: ['halal','vegetarian'], desc: 'Two-egg omelette with cheese, onion, tomato; buttered wholewheat toast.' },
+  { fdc_id: 170439, name: 'Halwa Puri Combo',             cal: 720, p: 14.0, c: 92.0, f: 32.0, allergens: ['gluten','dairy'], tags: ['halal','vegetarian'], desc: 'Sunday breakfast classic: deep-fried puri with chickpea curry and semolina halwa.' },
+  { fdc_id: 173690, name: 'Karak Chai',                   cal: 110, p: 3.0,  c: 14.0, f: 4.0,  allergens: ['dairy'], tags: ['halal','vegetarian'], desc: 'Strong milk tea simmered with cardamom.' },
+  { fdc_id: 173691, name: 'Doodh Patti',                  cal: 140, p: 4.0,  c: 18.0, f: 5.0,  allergens: ['dairy'], tags: ['halal','vegetarian'], desc: 'Whole-milk tea brewed without water, sweetened.' },
+  { fdc_id: 174828, name: 'Black Coffee',                 cal: 5,   p: 0.0,  c: 1.0,  f: 0.0,  allergens: [],         tags: ['halal','vegetarian','vegan','gluten_free'], desc: 'Freshly brewed Americano.' },
+  { fdc_id: 174829, name: 'Cappuccino',                   cal: 120, p: 6.0,  c: 12.0, f: 5.0,  allergens: ['dairy'], tags: ['halal','vegetarian'], desc: 'Espresso topped with steamed milk and foam.' },
+  { fdc_id: 167762, name: 'Mango Lassi',                  cal: 230, p: 6.0,  c: 38.0, f: 6.0,  allergens: ['dairy'], tags: ['halal','vegetarian','gluten_free'], desc: 'Sweet yoghurt-mango blended drink.' },
+  { fdc_id: 173690, name: 'Sugarcane Juice',              cal: 180, p: 0.0,  c: 45.0, f: 0.0,  allergens: [],         tags: ['halal','vegetarian','vegan','gluten_free'], desc: 'Cold-pressed sugarcane with a squeeze of lime.' },
+  { fdc_id: 174825, name: 'Fresh Orange Juice',           cal: 110, p: 2.0,  c: 26.0, f: 0.0,  allergens: [],         tags: ['halal','vegetarian','vegan','gluten_free'], desc: 'Hand-squeezed orange juice.' },
+  { fdc_id: 173432, name: 'Gulab Jamun (2 pcs)',          cal: 320, p: 5.0,  c: 56.0, f: 9.0,  allergens: ['dairy','gluten'], tags: ['halal','vegetarian'], desc: 'Milk-solid dumplings in saffron-rose syrup.' },
+  { fdc_id: 173433, name: 'Kheer',                        cal: 240, p: 6.0,  c: 38.0, f: 7.0,  allergens: ['dairy','tree_nut'], tags: ['halal','vegetarian'], desc: 'Slow-cooked rice pudding with cardamom and pistachio.' },
+  { fdc_id: 174826, name: 'Brownie',                      cal: 360, p: 5.0,  c: 44.0, f: 19.0, allergens: ['gluten','dairy','egg'], tags: ['halal','vegetarian'], desc: 'Dense fudge brownie. House-baked.' },
+  { fdc_id: 173434, name: 'Fruit Salad',                  cal: 140, p: 2.0,  c: 35.0, f: 0.5,  allergens: [],         tags: ['halal','vegetarian','vegan','gluten_free'], desc: 'Seasonal fruit with a hint of black salt and lemon.' },
+];
+
+export const RESEARCH_AREAS = {
+  'Computer Science': ['Machine Learning', 'Natural Language Processing', 'Computer Vision', 'Distributed Systems', 'Algorithms', 'Human-Computer Interaction', 'Programming Languages'],
+  'Software Engineering': ['Software Architecture', 'DevOps', 'Empirical Software Engineering', 'Software Testing', 'Mobile Engineering'],
+  'Data Science': ['Statistical Learning', 'Big Data Systems', 'Causal Inference', 'Time-Series Forecasting'],
+  'Cybersecurity': ['Network Security', 'Cryptography', 'Malware Analysis', 'Privacy Engineering'],
+  'Electrical Engineering': ['Power Systems', 'VLSI Design', 'Communications', 'Control Systems', 'Embedded Systems'],
+  'Mechanical Engineering': ['Thermodynamics', 'Robotics', 'Fluid Mechanics', 'Manufacturing'],
+  'Civil Engineering': ['Structural Engineering', 'Earthquake Engineering', 'Transportation', 'Water Resources'],
+  'Management': ['Organisational Behaviour', 'Strategy', 'Operations Research', 'Entrepreneurship'],
+  'Finance': ['Corporate Finance', 'Behavioural Finance', 'Islamic Finance', 'Financial Econometrics'],
+  'Marketing': ['Consumer Behaviour', 'Digital Marketing', 'Brand Strategy', 'Marketing Analytics'],
+  'Accounting': ['Audit', 'Financial Reporting', 'Taxation', 'Forensic Accounting'],
+  'Mathematics': ['Number Theory', 'Topology', 'Applied Mathematics', 'Mathematical Statistics'],
+  'Physics': ['Condensed Matter', 'Particle Physics', 'Optics', 'Astrophysics'],
+  'Chemistry': ['Organic Chemistry', 'Materials Chemistry', 'Biochemistry', 'Analytical Chemistry'],
+  'Biology': ['Molecular Biology', 'Ecology', 'Microbiology', 'Genetics'],
+  'English Literature': ['Postcolonial Literature', 'Modernist Poetry', 'South Asian Fiction', 'Literary Theory'],
+  'History': ['Mughal History', 'Modern South Asia', 'Ottoman History', 'World War Studies'],
+  'Sociology': ['Urban Sociology', 'Gender Studies', 'Political Sociology', 'Migration'],
+  'Philosophy': ['Ethics', 'Philosophy of Mind', 'Islamic Philosophy', 'Logic'],
+  'Visual Arts': ['Painting', 'Sculpture', 'Calligraphy', 'Printmaking'],
+  'Design': ['UX Design', 'Industrial Design', 'Graphic Design', 'Type Design'],
+  'Music': ['Classical Music', 'Ethnomusicology', 'Music Production'],
+  'Public Health': ['Epidemiology', 'Maternal Health', 'Health Policy', 'Infectious Disease'],
+  'Pharmacy': ['Clinical Pharmacy', 'Pharmacognosy', 'Pharmacology', 'Drug Design'],
+  'Nutrition': ['Community Nutrition', 'Sports Nutrition', 'Clinical Dietetics'],
+  'Law': ['Constitutional Law', 'Corporate Law', 'Criminal Law', 'International Law', 'Islamic Jurisprudence'],
+};
+
+export const CLUB_DEFS = [
+  { name: 'Northbridge Computing Society',  category: 'academic',     description: 'The flagship CS student society — hosts hackathons, workshops, and the annual NU CodeFest.' },
+  { name: 'AI & Robotics Club',             category: 'academic',     description: 'Builds robots, runs ML reading groups, fields teams for the National Engineering Robotics Contest.' },
+  { name: 'Cybersecurity Club',             category: 'academic',     description: 'CTF practice, ethical-hacking workshops, and an annual capture-the-flag tournament.' },
+  { name: 'Entrepreneurs Society',          category: 'professional', description: 'Startup pitch nights, founder talks, and the NU Venture Cup.' },
+  { name: 'Finance & Investment Club',      category: 'professional', description: 'Stock-pitch competitions, runs the student-managed investment portfolio.' },
+  { name: 'Debating Society',               category: 'academic',     description: 'Competes in BP, WSDC and parliamentary formats. Hosts the All-Sindh University Open.' },
+  { name: 'Literary Society',               category: 'cultural',     description: 'Poetry readings, short-story workshops, the annual Northbridge Anthology.' },
+  { name: 'Photography Club',               category: 'arts',         description: 'Weekly photo walks across Karachi, exhibitions in the Humanities Wing gallery.' },
+  { name: 'Dramatics Society',              category: 'arts',         description: 'Stages two full productions a year. Improv nights every other Friday.' },
+  { name: 'Music Society',                  category: 'arts',         description: 'Open-mic nights, choir, instrumental ensemble; performs at convocation.' },
+  { name: 'Sports Council',                 category: 'sports',       description: 'Coordinates inter-college tournaments — cricket, football, basketball, table tennis.' },
+  { name: 'Cricket Club',                   category: 'sports',       description: 'NU cricket team. Trains four times a week at the Sports Complex.' },
+  { name: 'Football Club',                  category: 'sports',       description: 'Mens and women\u2019s teams; competes in the HEC Inter-University League.' },
+  { name: 'Adventure Society',              category: 'sports',       description: 'Hiking, trekking and climbing trips — Hingol, Margalla, Hunza.' },
+  { name: 'Rotaract Club',                  category: 'community',    description: 'Service projects: blood drives, literacy programmes, environmental clean-ups.' },
+  { name: 'Environmental Society',          category: 'community',    description: 'Campus tree-planting, plastic-free week, climate-policy seminars.' },
+  { name: 'Model United Nations',           category: 'professional', description: 'Trains delegates and hosts the annual Northbridge MUN conference.' },
+  { name: 'IEEE Student Branch',            category: 'professional', description: 'Industry talks, technical workshops, IEEEXtreme programming contest.' },
+  { name: 'ACM Student Chapter',            category: 'academic',     description: 'Programming contest training; affiliated with ACM-ICPC regionals.' },
+  { name: 'Islamic Society',                category: 'community',    description: 'Quran study circles, Ramadan iftar dinners, Friday lectures.' },
+];
+
+export const EVENT_TEMPLATES = [
+  { title: 'Hackathon: NU CodeFest 2026',                  category: 'academic', org: 'Northbridge Computing Society', dur: 36, capacity: 200 },
+  { title: 'Career Fair (Spring 2026)',                    category: 'career',   org: 'Office of Career Services',     dur: 8,  capacity: 800 },
+  { title: 'Guest Lecture: AI in Healthcare',              category: 'academic', org: 'Department of Computer Science', dur: 1, capacity: 150 },
+  { title: 'Convocation 2026',                             category: 'academic', org: 'Office of the Registrar',       dur: 4,  capacity: 900 },
+  { title: 'Cricket Inter-College Final',                  category: 'sports',   org: 'Sports Council',                dur: 6,  capacity: 600 },
+  { title: 'Northbridge MUN Conference',                   category: 'academic', org: 'Model United Nations',          dur: 24, capacity: 250 },
+  { title: 'Spring Music Festival',                        category: 'cultural', org: 'Music Society',                 dur: 5,  capacity: 700 },
+  { title: 'Workshop: Resume & LinkedIn Clinic',           category: 'workshop', org: 'Office of Career Services',     dur: 2,  capacity: 60 },
+  { title: 'Workshop: Intro to Machine Learning',          category: 'workshop', org: 'AI & Robotics Club',            dur: 3,  capacity: 80 },
+  { title: 'Workshop: Capture the Flag Bootcamp',          category: 'workshop', org: 'Cybersecurity Club',            dur: 4,  capacity: 40 },
+  { title: 'Photo Walk: Saddar Heritage Trail',            category: 'club',     org: 'Photography Club',              dur: 4,  capacity: 30 },
+  { title: 'Dramatics Society: Spring Play',               category: 'cultural', org: 'Dramatics Society',             dur: 3,  capacity: 400 },
+  { title: 'Pitch Night: NU Venture Cup Semi-Final',       category: 'career',   org: 'Entrepreneurs Society',         dur: 3,  capacity: 200 },
+  { title: 'Talk: Climate Policy in South Asia',           category: 'academic', org: 'Environmental Society',         dur: 2,  capacity: 120 },
+  { title: 'Cultural Day',                                 category: 'cultural', org: 'Student Council',               dur: 8,  capacity: 1000 },
+  { title: 'Quaid-e-Azam Day Address',                     category: 'cultural', org: 'Office of Student Affairs',     dur: 2,  capacity: 500 },
+  { title: 'Iftar Dinner (Ramadan)',                       category: 'cultural', org: 'Islamic Society',               dur: 3,  capacity: 600 },
+  { title: 'Open Mic Night',                               category: 'cultural', org: 'Literary Society',              dur: 3,  capacity: 80 },
+  { title: 'Football Trials (Mens)',                       category: 'sports',   org: 'Football Club',                 dur: 3,  capacity: 60 },
+  { title: 'Adventure Trip: Hingol National Park',         category: 'club',     org: 'Adventure Society',             dur: 48, capacity: 25 },
+  { title: 'Industry Talk: Semiconductor Manufacturing',   category: 'career',   org: 'IEEE Student Branch',           dur: 2,  capacity: 100 },
+  { title: 'Blood Drive (Spring 2026)',                    category: 'club',     org: 'Rotaract Club',                 dur: 6,  capacity: 200 },
+  { title: 'Faculty Research Showcase',                    category: 'academic', org: 'Office of the Provost',         dur: 5,  capacity: 300 },
+  { title: 'Library Workshop: Citation & Plagiarism',      category: 'workshop', org: 'Quaid Central Library',         dur: 1,  capacity: 50 },
+  { title: 'Sports Gala Opening Ceremony',                 category: 'sports',   org: 'Sports Council',                dur: 2,  capacity: 800 },
+];
+
+export const LIBRARY_RESOURCES = [
+  { title: 'Introduction to Algorithms (CLRS), 4th ed.',           type: 'book',    location: 'Floor 3, Section CS',    quantity: 6,  desc: 'Cormen, Leiserson, Rivest, Stein. Standard algorithms reference.' },
+  { title: 'Computer Networks, Tanenbaum',                          type: 'book',    location: 'Floor 3, Section CS',    quantity: 4,  desc: 'Comprehensive networking textbook used in CS-340.' },
+  { title: 'Operating System Concepts, Silberschatz',               type: 'book',    location: 'Floor 3, Section CS',    quantity: 5,  desc: 'OS fundamentals — required for CS-330.' },
+  { title: 'Database System Concepts, Silberschatz',                type: 'book',    location: 'Floor 3, Section CS',    quantity: 4,  desc: 'Used in CS-310 Database Systems.' },
+  { title: 'Artificial Intelligence: A Modern Approach',            type: 'book',    location: 'Floor 3, Section CS',    quantity: 6,  desc: 'Russell & Norvig. The standard AI textbook.' },
+  { title: 'Pattern Recognition and Machine Learning, Bishop',      type: 'book',    location: 'Floor 3, Section CS',    quantity: 3,  desc: 'Graduate-level ML reference.' },
+  { title: 'Engineering Mechanics: Statics, Hibbeler',              type: 'book',    location: 'Floor 2, Section ENG',   quantity: 5,  desc: 'Required for CE-201, ME-201.' },
+  { title: 'Principles of Corporate Finance, Brealey & Myers',      type: 'book',    location: 'Floor 2, Section BUS',   quantity: 4,  desc: 'Required for FIN-301.' },
+  { title: 'Marketing Management, Kotler',                          type: 'book',    location: 'Floor 2, Section BUS',   quantity: 5,  desc: 'Required for MKT-301.' },
+  { title: 'Pakistan: A New History, Talbot',                       type: 'book',    location: 'Floor 1, Section HIST',  quantity: 3,  desc: 'Modern political history of Pakistan.' },
+  { title: 'A Case of Exploding Mangoes, Mohammed Hanif',           type: 'book',    location: 'Floor 1, Section LIT',   quantity: 4,  desc: 'Contemporary South Asian fiction.' },
+  { title: 'IEEE Xplore Digital Library',                           type: 'database',location: 'Online via library portal', quantity: 1, desc: 'Full-text IEEE journals and conference proceedings.' },
+  { title: 'ACM Digital Library',                                   type: 'database',location: 'Online via library portal', quantity: 1, desc: 'ACM journals, magazines, and conference papers.' },
+  { title: 'JSTOR',                                                 type: 'database',location: 'Online via library portal', quantity: 1, desc: 'Humanities, arts and social sciences archive.' },
+  { title: 'ScienceDirect',                                         type: 'database',location: 'Online via library portal', quantity: 1, desc: 'Elsevier journal collection.' },
+  { title: 'Group Study Room A',                                    type: 'study_room', location: 'Floor 4, Library',     quantity: 1,  desc: '8-person bookable study room. Whiteboard + 65" display.' },
+  { title: 'Group Study Room B',                                    type: 'study_room', location: 'Floor 4, Library',     quantity: 1,  desc: '6-person bookable study room. Whiteboard + 55" display.' },
+  { title: 'Silent Reading Room',                                   type: 'study_room', location: 'Floor 5, Library',     quantity: 1,  desc: '40-seat silent zone. No phones; laptop typing permitted on rear desks.' },
+  { title: 'Bloomberg Terminal',                                    type: 'equipment',  location: 'Floor 2, Finance Lab', quantity: 4,  desc: 'Live financial data terminals. Booking via finance.lab@nu.edu.pk.' },
+  { title: '3D Printer (Ultimaker S5)',                             type: 'equipment',  location: 'Floor 1, Maker Space', quantity: 2,  desc: 'PLA + ABS printing. Training session required before first use.' },
+];

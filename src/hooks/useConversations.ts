@@ -2,10 +2,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface Citation {
+  slug: string;
+  title: string;
+  source: string;
+}
+
 export interface Message {
   id?: string;
   role: "user" | "assistant";
   content: string;
+  citations?: Citation[];
 }
 
 export interface Conversation {
@@ -15,6 +22,13 @@ export interface Conversation {
   updated_at: string;
   summary: string | null;
   message_count: number;
+}
+
+function extractCitations(metadata: unknown): Citation[] | undefined {
+  if (!metadata || typeof metadata !== "object") return undefined;
+  const cites = (metadata as { citations?: unknown }).citations;
+  if (!Array.isArray(cites) || cites.length === 0) return undefined;
+  return cites as Citation[];
 }
 
 export function useConversations(userId: string | undefined) {
@@ -83,6 +97,7 @@ export function useConversations(userId: string | undefined) {
           id: m.id,
           role: m.role as "user" | "assistant",
           content: m.content,
+          citations: extractCitations(m.metadata),
         })) || []
       );
     };
@@ -115,11 +130,13 @@ export function useConversations(userId: string | undefined) {
   const addMessage = async (
     conversationId: string,
     role: "user" | "assistant",
-    content: string
+    content: string,
+    citations?: Citation[]
   ) => {
+    const metadata = citations && citations.length > 0 ? { citations } : {};
     const { data, error } = await supabase
       .from("messages")
-      .insert({ conversation_id: conversationId, role, content })
+      .insert({ conversation_id: conversationId, role, content, metadata })
       .select()
       .single();
 
@@ -128,7 +145,7 @@ export function useConversations(userId: string | undefined) {
       return null;
     }
 
-    setMessages((prev) => [...prev, { id: data.id, role, content }]);
+    setMessages((prev) => [...prev, { id: data.id, role, content, citations }]);
 
     // Update message count
     const newCount = messageCount + 1;
