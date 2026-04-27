@@ -1,4 +1,4 @@
-project_id = "ntxsqummbqprinlgbnuu"
+project_id = "bwiliqlcfvrlnvwgblsp"
 
 [functions.chat-ollama]
 verify_jwt = true

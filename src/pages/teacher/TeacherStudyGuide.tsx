@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyGuideDisplay } from '@/components/StudyGuideDisplay';
-import { OllamaSettings, getOllamaUrl } from '@/components/OllamaSettings';
 import { sampleStudent } from '@/data/sampleStudentData';
 import { getCurrentSemesterPerformance, SubjectPerformance, CLOScore } from '@/lib/performanceAnalyzer';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +27,6 @@ const TeacherStudyGuide = () => {
   const [generating, setGenerating] = useState(false);
   const [generatingTopic, setGeneratingTopic] = useState<number | null>(null);
   const [studyGuide, setStudyGuide] = useState<string | null>(null);
-  const [ollamaUrl, setOllamaUrl] = useState(getOllamaUrl());
 
   // Memoize class averages so they don't change on re-render
   const [classAverages] = useState(() => {
@@ -70,19 +68,10 @@ const TeacherStudyGuide = () => {
     }
   }, [selectedSubject]);
 
-  const checkOllama = () => {
-    if (!ollamaUrl) {
-      toast({ title: 'Ollama Not Configured', description: 'Please set your Ollama ngrok URL in the settings above', variant: 'destructive' });
-      return false;
-    }
-    return true;
-  };
-
   const getClassAvg = (code: string) => classAverages[code] ?? 0;
   const getCLOClassAvg = (code: string, cloNum: number) => cloClassAverages[code]?.[cloNum] ?? 0;
 
   const generateForSubject = async (subject: SubjectPerformance) => {
-    if (!checkOllama()) return;
     setGenerating(true);
     setStudyGuide(null);
     try {
@@ -102,7 +91,6 @@ const TeacherStudyGuide = () => {
             weakCLOs,
             allCLOs: cloData,
           }],
-          ollamaUrl,
         },
       });
       if (error) throw error;
@@ -118,7 +106,6 @@ const TeacherStudyGuide = () => {
   };
 
   const generateForTopic = async (subject: SubjectPerformance, clo: CLOScore) => {
-    if (!checkOllama()) return;
     setGeneratingTopic(clo.cloNumber);
     setStudyGuide(null);
     try {
@@ -135,7 +122,6 @@ const TeacherStudyGuide = () => {
             allCLOs: [cloWithAvg],
           }],
           focusArea: `Focus specifically on CLO ${clo.cloNumber}: "${clo.description}". The class average for this topic is ${cloAvg}%. Provide an in-depth guide for this specific topic that the instructor can distribute to students.`,
-          ollamaUrl,
         },
       });
       if (error) throw error;
@@ -185,11 +171,6 @@ const TeacherStudyGuide = () => {
             <p className="text-muted-foreground text-lg">
               Create and distribute targeted study materials based on class performance analytics
             </p>
-          </div>
-
-          {/* Ollama Settings */}
-          <div className="max-w-2xl mx-auto">
-            <OllamaSettings onUrlChange={setOllamaUrl} />
           </div>
 
           {/* Content */}

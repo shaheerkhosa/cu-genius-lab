@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Clock, CheckCircle, AlertCircle, ClipboardList } from 'lucide-react';
+import { ProctoringGate } from "@/components/ProctoringGate";
+import { ProctoringOverlay } from "@/components/ProctoringOverlay";
 
 interface AvailableQuiz {
   id: string;
@@ -40,6 +42,9 @@ const StudentQuiz = () => {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ score: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [proctoringReady, setProctoringReady] = useState(false);
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const submitInFlightRef = useRef(false);
 
   useEffect(() => {
     fetchQuizzes();
@@ -116,48 +121,63 @@ const StudentQuiz = () => {
       return;
     }
 
+    setStudentId(user.id);
     setActiveQuiz(quiz);
     setQuestions(qs as QuizQuestion[]);
     setAnswers({});
     setResult(null);
+    setProctoringReady(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (opts: { auto?: boolean } = {}) => {
     if (!activeQuiz) return;
+    if (submitInFlightRef.current) return;
 
-    const unanswered = questions.filter(q => !answers[q.id]);
-    if (unanswered.length > 0) {
-      toast.error(`Please answer all questions (${unanswered.length} unanswered)`);
-      return;
+    if (!opts.auto) {
+      const unanswered = questions.filter(q => !answers[q.id]);
+      if (unanswered.length > 0) {
+        toast.error(`Please answer all questions (${unanswered.length} unanswered)`);
+        return;
+      }
     }
 
+    submitInFlightRef.current = true;
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSubmitting(false); return; }
+    if (!user) { setSubmitting(false); submitInFlightRef.current = false; return; }
 
     const { data: fullQs } = await supabase
       .from('quiz_questions')
       .select('*')
       .eq('assessment_id', activeQuiz.id);
 
-    if (!fullQs) { toast.error('Failed to grade'); setSubmitting(false); return; }
+    if (!fullQs) { toast.error('Failed to grade'); setSubmitting(false); submitInFlightRef.current = false; return; }
 
     let score = 0;
-    const responses = questions.map(q => {
-      const fullQ = fullQs.find(fq => fq.id === q.id);
-      const isCorrect = fullQ && answers[q.id] === fullQ.correct_option;
-      if (isCorrect) score += q.marks;
-      return {
-        assessment_id: activeQuiz.id,
-        student_id: user.id,
-        question_id: q.id,
-        selected_option: answers[q.id],
-        is_correct: isCorrect || false,
-      };
-    });
+    const responses = questions
+      .filter(q => opts.auto ? answers[q.id] : true)
+      .map(q => {
+        const fullQ = fullQs.find(fq => fq.id === q.id);
+        const isCorrect = fullQ && answers[q.id] === fullQ.correct_option;
+        if (isCorrect) score += q.marks;
+        return {
+          assessment_id: activeQuiz.id,
+          student_id: user.id,
+          question_id: q.id,
+          selected_option: answers[q.id],
+          is_correct: isCorrect || false,
+        };
+      });
 
-    const { error: respError } = await supabase.from('quiz_responses').insert(responses);
-    if (respError) { toast.error('Failed to submit responses'); setSubmitting(false); return; }
+    if (responses.length > 0) {
+      const { error: respError } = await supabase.from('quiz_responses').insert(responses);
+      if (respError && !opts.auto) {
+        toast.error('Failed to submit responses');
+        setSubmitting(false);
+        submitInFlightRef.current = false;
+        return;
+      }
+    }
 
     await supabase.from('quiz_attempts').update({
       completed_at: new Date().toISOString(),
@@ -166,8 +186,9 @@ const StudentQuiz = () => {
 
     setResult({ score, total: activeQuiz.total_marks });
     setCompletedQuizIds(prev => [...prev, activeQuiz.id]);
-    toast.success('Quiz submitted!');
+    if (!opts.auto) toast.success('Quiz submitted!');
     setSubmitting(false);
+    submitInFlightRef.current = false;
   };
 
   const timeRemaining = (endStr: string) => {
@@ -179,12 +200,37 @@ const StudentQuiz = () => {
     return `${hrs}h ${mins % 60}m remaining`;
   };
 
+  // Proctoring permission gate (shown before quiz questions)
+  if (activeQuiz && !result && !proctoringReady) {
+    return (
+      <Layout>
+        <div className="relative min-h-screen p-8">
+          <DecorativeBackground />
+          <div className="relative z-10">
+            <ProctoringGate
+              quizTitle={activeQuiz.title}
+              onAccept={() => setProctoringReady(true)}
+              onCancel={() => { setActiveQuiz(null); setQuestions([]); setProctoringReady(false); }}
+            />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   // Quiz taking view
   if (activeQuiz && !result) {
     return (
       <Layout>
         <div className="relative min-h-screen p-8">
           <DecorativeBackground />
+          {studentId && (
+            <ProctoringOverlay
+              assessmentId={activeQuiz.id}
+              studentId={studentId}
+              onAutoSubmit={() => handleSubmit({ auto: true })}
+            />
+          )}
           <div className="relative z-10 max-w-3xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -223,10 +269,10 @@ const StudentQuiz = () => {
             ))}
 
             <div className="flex justify-between items-center pt-4">
-              <Button variant="outline" onClick={() => { setActiveQuiz(null); setQuestions([]); }} className="rounded-xl">
+              <Button variant="outline" onClick={() => { setActiveQuiz(null); setQuestions([]); setProctoringReady(false); }} className="rounded-xl">
                 Cancel
               </Button>
-              <Button size="lg" onClick={handleSubmit} disabled={submitting} className="rounded-xl px-8">
+              <Button size="lg" onClick={() => handleSubmit()} disabled={submitting} className="rounded-xl px-8">
                 {submitting ? 'Submitting...' : 'Submit Quiz'}
               </Button>
             </div>
@@ -251,7 +297,7 @@ const StudentQuiz = () => {
                 <p className="text-muted-foreground">{activeQuiz.title}</p>
                 <div className="text-5xl font-bold text-primary">{result.score}/{result.total}</div>
                 <p className="text-lg text-muted-foreground">{percentage}%</p>
-                <Button onClick={() => { setActiveQuiz(null); setResult(null); fetchQuizzes(); }} className="w-full rounded-xl mt-4">
+                <Button onClick={() => { setActiveQuiz(null); setResult(null); setProctoringReady(false); fetchQuizzes(); }} className="w-full rounded-xl mt-4">
                   Back to Quizzes
                 </Button>
               </CardContent>

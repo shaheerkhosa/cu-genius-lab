@@ -5,9 +5,8 @@ import { Layout } from "@/components/Layout";
 import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { OllamaSettings, getOllamaUrl } from "@/components/OllamaSettings";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatLanding } from "@/components/ChatLanding";
 import { useConversations } from "@/hooks/useConversations";
@@ -24,7 +23,6 @@ const Chat = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [ollamaUrl, setOllamaUrl] = useState(() => getOllamaUrl());
 
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -121,12 +119,6 @@ const Chat = () => {
   const handleSendMessage = async (messageContent: string) => {
     if (!messageContent.trim() || isSending || !user) return;
 
-    const currentUrl = getOllamaUrl();
-    if (!currentUrl) {
-      toast.error("Please configure your ngrok URL in settings first");
-      return;
-    }
-
     setIsSending(true);
 
     try {
@@ -155,7 +147,6 @@ const Chat = () => {
           },
           body: JSON.stringify({
             messages: allMessages.slice(-2), // Only send last 2 messages
-            ollamaUrl: currentUrl,
             summary: currentSummary, // Include rolling summary for context
           }),
         }
@@ -163,14 +154,13 @@ const Chat = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get response from Ollama");
+        throw new Error(errorData.error || "Failed to get response from the AI service");
       }
 
       const data = await response.json();
-      console.log("Ollama response:", data);
 
       if (data.message?.content) {
-        await addMessage(convId, "assistant", data.message.content);
+        await addMessage(convId, "assistant", data.message.content, data.message.citations);
         
         // Generate summary every 4 messages (in background)
         if (shouldGenerateSummary()) {
@@ -183,7 +173,6 @@ const Chat = () => {
             },
             body: JSON.stringify({
               messages: allMessages.slice(-6), // Summarize last 6 messages
-              ollamaUrl: currentUrl,
               generateSummary: true,
             }),
           })
@@ -197,14 +186,14 @@ const Chat = () => {
             .catch((err) => console.error("Summary generation failed:", err));
         }
       } else {
-        throw new Error("No response content from Ollama");
+        throw new Error("No response content from the AI service");
       }
     } catch (error) {
-      console.error("Error calling Ollama:", error);
+      console.error("Chat error:", error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to connect to Ollama. Please check your settings."
+          : "Failed to reach the AI service. Please try again."
       );
     } finally {
       setIsSending(false);
@@ -245,7 +234,7 @@ const Chat = () => {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-primary">AI Chat Assistant</h1>
-              <p className="text-muted-foreground mt-1">Powered by Ollama</p>
+              <p className="text-muted-foreground mt-1">Powered by Claude</p>
             </div>
             <ChatHistory
               conversations={conversations}
@@ -254,9 +243,6 @@ const Chat = () => {
               onNewChat={startNewChat}
               onDelete={deleteConversation}
             />
-          </div>
-          <div className="mt-4">
-            <OllamaSettings onUrlChange={setOllamaUrl} />
           </div>
         </div>
 
@@ -285,6 +271,25 @@ const Chat = () => {
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.role === "assistant" && message.citations && message.citations.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                              <BookOpen className="h-3 w-3" />
+                              <span className="font-medium">Sources</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {message.citations.map((c) => (
+                                <span
+                                  key={c.slug}
+                                  className="inline-flex items-center gap-1 text-xs bg-background/80 border border-border rounded-full px-2 py-0.5 text-muted-foreground"
+                                  title={`${c.source} • ${c.slug}`}
+                                >
+                                  {c.title}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
