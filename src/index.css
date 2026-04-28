@@ -60,6 +60,20 @@ All colors MUST be HSL.
     --sidebar-ring: 262 72% 65%;
   }
 
+  /* Admin portal theme - emerald primary (light mode). Distinct from
+     student blue and teacher purple so the chrome instantly tells the
+     admin which surface they're on. */
+  .admin-portal {
+    --primary: 160 64% 38%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 160 64% 38%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --sidebar-primary: 160 64% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-ring: 160 64% 38%;
+  }
+
   .dark {
     --background: 217 33% 17%;
     --foreground: 0 0% 100%;
@@ -109,6 +123,19 @@ All colors MUST be HSL.
     --sidebar-primary: 262 72% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-ring: 262 72% 70%;
+  }
+
+  /* Admin portal theme in dark mode - lifted emerald so it stays vivid
+     against the dark sidebar/background. */
+  .dark.admin-portal {
+    --primary: 158 64% 52%;
+    --primary-foreground: 217 33% 12%;
+    --ring: 158 64% 52%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 217 33% 12%;
+    --sidebar-ring: 158 64% 52%;
   }
 }
 

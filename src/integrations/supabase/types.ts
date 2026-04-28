@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       assessments: {
@@ -892,18 +917,21 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
+          enrollment_year: number
           id: string
           username: string
         }
         Insert: {
           created_at?: string | null
           email: string
+          enrollment_year?: number
           id: string
           username: string
         }
         Update: {
           created_at?: string | null
           email?: string
+          enrollment_year?: number
           id?: string
           username?: string
         }
@@ -1124,6 +1152,42 @@ export type Database = {
           },
         ]
       }
+      student_announcements: {
+        Row: {
+          audience_type: string
+          audience_value: number | null
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+          priority: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience_type: string
+          audience_value?: number | null
+          body: string
+          created_at?: string
+          created_by: string
+          id?: string
+          priority?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience_type?: string
+          audience_value?: number | null
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          priority?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_marks: {
         Row: {
           assessment_id: string
@@ -1314,6 +1378,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_timetable_conflicts: {
+        Args: {
+          p_course_code: string
+          p_day_of_week: number
+          p_end_time: string
+          p_exclude_id?: string
+          p_start_time: string
+        }
+        Returns: {
+          conflicting_course_code: string
+          conflicting_course_name: string
+          conflicting_end: string
+          conflicting_room: string
+          conflicting_start: string
+          student_email: string
+          student_id: string
+          student_name: string
+        }[]
+      }
+      grant_admin: { Args: { p_email: string }; Returns: string }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_enrolled_in_course: {
         Args: { _course_code: string; _student_id: string }
         Returns: boolean
@@ -1336,6 +1421,7 @@ export type Database = {
           similarity: number
         }[]
       }
+      profile_enrollment_year: { Args: { _user_id: string }; Returns: number }
       submit_assignment: {
         Args: { p_assessment_id: string; p_file_path: string }
         Returns: {
@@ -1487,6 +1573,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

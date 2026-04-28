@@ -21,13 +21,18 @@ type Priority = "normal" | "important" | "urgent";
 
 interface Announcement {
   id: string;
-  course_code: string;
-  teacher_id: string;
+  // For 'course' announcements: course_code is set, audience_* is undefined.
+  // For 'admin' announcements: course_code is undefined, audience_* is set.
+  source: "course" | "admin";
+  course_code?: string;
+  teacher_id?: string;
+  audience_type?: "all" | "batch";
+  audience_value?: number | null;
   title: string;
   body: string;
   priority: Priority;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 interface CourseMeta {
@@ -85,19 +90,39 @@ const StudentAnnouncements = () => {
       setCourseMeta(map);
     }
 
-    // RLS already restricts to enrolled courses — fetch all visible.
-    const { data, error } = await supabase
-      .from("course_announcements")
-      .select("*")
-      .order("created_at", { ascending: false });
+    // Fetch course-scoped announcements (from teachers) and admin
+    // broadcasts in parallel. RLS scopes both: course rows are limited to
+    // courses the student is enrolled in; admin rows to 'all' or matching
+    // batch year.
+    const [courseRes, adminRes] = await Promise.all([
+      supabase
+        .from("course_announcements")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("student_announcements")
+        .select("*")
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (error) {
+    if (courseRes.error || adminRes.error) {
       toast.error("Couldn't load announcements");
       setLoading(false);
       return;
     }
 
-    setAnnouncements((data ?? []) as Announcement[]);
+    const merged: Announcement[] = [
+      ...((courseRes.data ?? []).map((row) => ({
+        ...(row as Record<string, unknown>),
+        source: "course" as const,
+      })) as Announcement[]),
+      ...((adminRes.data ?? []).map((row) => ({
+        ...(row as Record<string, unknown>),
+        source: "admin" as const,
+      })) as Announcement[]),
+    ];
+
+    setAnnouncements(merged);
 
     // Track "last seen" per user in localStorage so we can highlight new posts.
     const key = `announcements_seen_${user.id}`;
@@ -116,7 +141,9 @@ const StudentAnnouncements = () => {
     const filtered =
       filterCourse === "all"
         ? announcements
-        : announcements.filter((a) => a.course_code === filterCourse);
+        : filterCourse === "admin"
+          ? announcements.filter((a) => a.source === "admin")
+          : announcements.filter((a) => a.course_code === filterCourse);
     return [...filtered].sort((a, b) => {
       const r = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
       if (r !== 0) return r;
@@ -125,9 +152,18 @@ const StudentAnnouncements = () => {
   }, [announcements, filterCourse]);
 
   const courseCodes = useMemo(() => {
-    const set = new Set(announcements.map((a) => a.course_code));
+    const set = new Set(
+      announcements
+        .map((a) => a.course_code)
+        .filter((c): c is string => typeof c === "string"),
+    );
     return Array.from(set).sort();
   }, [announcements]);
+
+  const hasAdminBroadcasts = useMemo(
+    () => announcements.some((a) => a.source === "admin"),
+    [announcements],
+  );
 
   const stats = useMemo(() => {
     const urgent = announcements.filter((a) => a.priority === "urgent").length;
@@ -190,8 +226,8 @@ const StudentAnnouncements = () => {
             </div>
           )}
 
-          {/* Course filter */}
-          {courseCodes.length > 1 && (
+          {/* Course / source filter */}
+          {(courseCodes.length > 1 || hasAdminBroadcasts) && (
             <ToggleGroup
               type="single"
               value={filterCourse}
@@ -199,8 +235,16 @@ const StudentAnnouncements = () => {
               className="flex-wrap justify-start gap-1.5"
             >
               <ToggleGroupItem value="all" className="rounded-lg text-xs h-8 px-3 data-[state=on]:bg-primary/15 data-[state=on]:text-primary">
-                All courses
+                All
               </ToggleGroupItem>
+              {hasAdminBroadcasts && (
+                <ToggleGroupItem
+                  value="admin"
+                  className="rounded-lg text-xs h-8 px-3 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+                >
+                  Admin
+                </ToggleGroupItem>
+              )}
               {courseCodes.map((code) => (
                 <ToggleGroupItem
                   key={code}
@@ -225,9 +269,9 @@ const StudentAnnouncements = () => {
           <div className="space-y-3">
             {sorted.map((a) => (
               <AnnouncementCard
-                key={a.id}
+                key={`${a.source}-${a.id}`}
                 announcement={a}
-                courseName={courseMeta[a.course_code] ?? ""}
+                courseName={a.course_code ? (courseMeta[a.course_code] ?? "") : ""}
                 isFresh={!!unseenAt && new Date(a.created_at) > unseenAt}
               />
             ))}
@@ -274,10 +318,20 @@ const AnnouncementCard = ({
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="space-y-1.5 min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
-                  {a.course_code}
-                </Badge>
-                {courseName && <span className="text-xs text-muted-foreground truncate">{courseName}</span>}
+                {a.source === "admin" ? (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/30">
+                    {a.audience_type === "all" ? "All students" : `Batch ${a.audience_value}`}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">
+                    {a.course_code}
+                  </Badge>
+                )}
+                {a.source === "admin" ? (
+                  <span className="text-xs text-muted-foreground truncate">From admin</span>
+                ) : (
+                  courseName && <span className="text-xs text-muted-foreground truncate">{courseName}</span>
+                )}
                 {priorityBadge}
                 {isFresh && (
                   <Badge className="text-[10px] px-1.5 py-0 bg-primary/15 text-primary border-0">

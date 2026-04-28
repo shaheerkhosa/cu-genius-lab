@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+import { AdminLayout } from '@/components/AdminLayout';
 import { DecorativeBackground } from '@/components/DecorativeBackground';
 import { AdminDocumentQueue } from '@/components/AdminDocumentQueue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -74,11 +74,11 @@ const AdminDocuments = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-lg text-muted-foreground">Loading...</div>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
@@ -87,7 +87,7 @@ const AdminDocuments = () => {
   }
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="relative min-h-screen p-8">
         <DecorativeBackground />
 
@@ -186,7 +186,7 @@ const AdminDocuments = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 };
 

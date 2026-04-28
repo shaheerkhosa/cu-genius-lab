@@ -41,14 +41,21 @@ const Auth = () => {
   const redirectTo = (location.state as { from?: string })?.from || (portal === "teacher" ? "/teacher" : "/");
 
   const resolveRedirect = async (session: { user: { id: string; user_metadata?: Record<string, unknown> } }) => {
+    // A user can hold multiple role rows (the schema's UNIQUE is (user_id,
+    // role)), so fetch them all and pick the highest-privilege one. The
+    // admin portal is intentionally hidden — entering admin creds in the
+    // Student or Teacher tab still redirects them here.
     const { data } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+      .eq('user_id', session.user.id);
 
-    const role = data?.role || session.user.user_metadata?.portal_type;
-    if (role === 'teacher') {
+    const roles = (data ?? []).map((r) => r.role as string);
+    const fallback = (session.user.user_metadata?.portal_type as string | undefined);
+
+    if (roles.includes('admin')) {
+      navigate("/admin");
+    } else if (roles.includes('teacher') || fallback === 'teacher') {
       navigate("/teacher");
     } else {
       navigate("/");
