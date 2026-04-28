@@ -1,4 +1,4 @@
-// Northbridge University knowledge-base corpus.
+// COMSATS University Islamabad knowledge-base corpus.
 // Hand-authored prose covering the canonical sections a student or staff member
 // would consult: handbook, policies, services, FAQs, course catalog, calendar.
 //
@@ -8,21 +8,21 @@ export const CORPUS = [
   // ───────── About / institutional ─────────
   {
     slug: 'about-northbridge',
-    title: 'About Northbridge University',
+    title: 'About COMSATS University Islamabad',
     source: 'about',
     category: 'institutional',
-    body: `Northbridge University (NU) is a HEC-recognized private university located in Karachi, Pakistan, founded in 1962. The university serves approximately 6,800 undergraduate students and 1,200 postgraduate students across eight colleges: Computing, Engineering, Business, Sciences, Humanities, Arts, Health Sciences, and Law.
+    body: `COMSATS University Islamabad (NU) is a HEC-recognized private university located in Karachi, Pakistan, founded in 1962. The university serves approximately 6,800 undergraduate students and 1,200 postgraduate students across eight colleges: Computing, Engineering, Business, Sciences, Humanities, Arts, Health Sciences, and Law.
 
 The main campus spans 65 acres in Gulshan-e-Iqbal, Karachi, and is organized around twelve principal buildings — including the College of Computing Block, the Iqbal Business Centre, the Quaid Central Library, the Jinnah Auditorium, and the Sports Complex. The university operates on a two-semester academic year (Spring: late January through May; Fall: August through December) with an optional summer term in June and July.
 
-Northbridge's mission is to deliver rigorous, research-informed education that prepares Pakistani students for global careers while remaining grounded in local industry, culture, and values. The university's motto is "Knowledge across the bridge." Degrees are recognized by the Higher Education Commission (HEC) of Pakistan and accepted across the GCC, UK, and North America for further study and employment.`,
+COMSATS's mission is to deliver rigorous, research-informed education that prepares Pakistani students for global careers while remaining grounded in local industry, culture, and values. The university's motto is "Knowledge across the bridge." Degrees are recognized by the Higher Education Commission (HEC) of Pakistan and accepted across the GCC, UK, and North America for further study and employment.`,
   },
   {
     slug: 'leadership-and-governance',
     title: 'Leadership & Governance',
     source: 'about',
     category: 'institutional',
-    body: `Northbridge University is governed by a Board of Trustees that meets quarterly and reports to the Higher Education Commission (HEC). The Vice Chancellor is the chief academic and administrative officer of the university and chairs the Academic Council. Each of the eight colleges is led by a Dean, who reports to the Vice Chancellor and is supported by department heads.
+    body: `COMSATS University Islamabad is governed by a Board of Trustees that meets quarterly and reports to the Higher Education Commission (HEC). The Vice Chancellor is the chief academic and administrative officer of the university and chairs the Academic Council. Each of the eight colleges is led by a Dean, who reports to the Vice Chancellor and is supported by department heads.
 
 Day-to-day administration is handled from the Administration Building (ADM), which houses the Office of the Vice Chancellor, the Registrar, Finance, Human Resources, and the Deans' offices. The Office of the Registrar is the authoritative source for transcripts, degree verification, course registration, and grade appeals. The Vice Chancellor maintains open office hours every Wednesday afternoon by appointment via the Registrar's office.`,
   },
@@ -58,7 +58,7 @@ The summer term (optional, two compressed sessions) runs from 8 June to 25 July 
     title: 'Undergraduate Admissions Handbook',
     source: 'handbook',
     category: 'admissions',
-    body: `Northbridge admits undergraduate students for both Spring and Fall semesters. Applications are submitted through the Northbridge Online Admissions Portal at admissions.nu.edu.pk.
+    body: `COMSATS admits undergraduate students for both Spring and Fall semesters. Applications are submitted through the COMSATS Online Admissions Portal at admissions.nu.edu.pk.
 
 Eligibility (general): a candidate must have completed either the HSSC/Intermediate (FSc, FA, ICS, ICom, or equivalent) with at least 50% marks, or A-Levels/IB Diploma with grades equivalency from the Inter-Board Committee of Chairmen (IBCC). Engineering and Computing programs require a minimum of 60% in HSSC pre-engineering, pre-medical with mathematics, or A-Level passes including Mathematics. Health Sciences requires pre-medical or equivalent with biology and chemistry.
 
@@ -70,7 +70,7 @@ Required documents:
 - Two passport-sized photographs
 - Domicile certificate (for provincial quotas)
 
-Northbridge Admission Test (NAT-NU) is held twice a year — in November (for Spring intake) and in May (for Fall intake) — and covers English, Mathematics, and a subject-specific section. Engineering applicants must additionally submit a valid ECAT score; computing applicants may submit either NAT-NU or ECAT. Test waivers are granted for SAT 1300+ or A-Level AAB or higher.
+COMSATS Admission Test (NAT-NU) is held twice a year — in November (for Spring intake) and in May (for Fall intake) — and covers English, Mathematics, and a subject-specific section. Engineering applicants must additionally submit a valid ECAT score; computing applicants may submit either NAT-NU or ECAT. Test waivers are granted for SAT 1300+ or A-Level AAB or higher.
 
 Admission fee at the time of acceptance is PKR 25,000 (non-refundable). Annual tuition ranges from PKR 320,000 (Humanities, Arts) to PKR 580,000 (Computing, Engineering, Pharmacy). Need-based and merit scholarships are described in the Financial Aid policy.`,
   },
@@ -79,9 +79,9 @@ Admission fee at the time of acceptance is PKR 25,000 (non-refundable). Annual t
     title: 'Graduate Admissions Handbook',
     source: 'handbook',
     category: 'admissions',
-    body: `Graduate admissions at Northbridge cover MS, MPhil, and PhD programs across all eight colleges. Applications open twice a year, with deadlines on 30 November (Spring) and 30 June (Fall).
+    body: `Graduate admissions at COMSATS cover MS, MPhil, and PhD programs across all eight colleges. Applications open twice a year, with deadlines on 30 November (Spring) and 30 June (Fall).
 
-For MS/MPhil programs, applicants must hold a 16-year (4-year BS or BS Honours) degree with CGPA 2.5/4.0 or 60% in the annual system. For PhD programs, applicants need an MS/MPhil with CGPA 3.0/4.0 and a research proposal of 1,500–2,500 words. All graduate applicants take the Northbridge Graduate Test (GAT-NU) or submit a valid HEC GAT-General/Subject score.
+For MS/MPhil programs, applicants must hold a 16-year (4-year BS or BS Honours) degree with CGPA 2.5/4.0 or 60% in the annual system. For PhD programs, applicants need an MS/MPhil with CGPA 3.0/4.0 and a research proposal of 1,500–2,500 words. All graduate applicants take the COMSATS Graduate Test (GAT-NU) or submit a valid HEC GAT-General/Subject score.
 
 Graduate students are required to maintain a CGPA of 3.0/4.0 to remain in good standing. PhD students are admitted into a research group at the time of admission and assigned a primary supervisor; the supervisor change request process is described in the PhD Handbook.`,
   },
@@ -92,7 +92,7 @@ Graduate students are required to maintain a CGPA of 3.0/4.0 to remain in good s
     title: 'Grading Policy',
     source: 'policy',
     category: 'academics',
-    body: `Northbridge uses a 4.0 GPA scale. Letter grades, percentage ranges, and grade points:
+    body: `COMSATS uses a 4.0 GPA scale. Letter grades, percentage ranges, and grade points:
 
 - A   90–100   4.00
 - A-  85–89    3.67
@@ -118,7 +118,7 @@ A student whose semester GPA falls below 2.0 is placed on academic probation. Tw
     title: 'Attendance Policy',
     source: 'policy',
     category: 'academics',
-    body: `Class attendance at Northbridge is mandatory. A student must attend at least 80% of scheduled classes in each course to be eligible to sit the final examination of that course.
+    body: `Class attendance at COMSATS is mandatory. A student must attend at least 80% of scheduled classes in each course to be eligible to sit the final examination of that course.
 
 A student whose attendance falls below 80% but is at least 70% may submit a written appeal with documentary evidence (medical certificate from a registered hospital, bereavement, or university-authorized travel) to the course instructor and the department head. Appeals below 70% attendance are not entertained except in exceptional circumstances ratified by the Academic Council.
 
@@ -129,7 +129,7 @@ Three consecutive late arrivals (more than 10 minutes after class start) count a
     title: 'Examinations Policy',
     source: 'policy',
     category: 'academics',
-    body: `Each course at Northbridge is assessed through a combination of continuous assessment (assignments, quizzes, projects, lab work) and formal examinations. The standard weighting is: 30% continuous assessment, 30% mid-term examination, 40% final examination — though departments may adjust within bounds approved by the Academic Council.
+    body: `Each course at COMSATS is assessed through a combination of continuous assessment (assignments, quizzes, projects, lab work) and formal examinations. The standard weighting is: 30% continuous assessment, 30% mid-term examination, 40% final examination — though departments may adjust within bounds approved by the Academic Council.
 
 Mid-term examinations are held in week 7–8 of the semester. Final examinations are held in the last two weeks. The detailed examination schedule is published by the Office of the Controller of Examinations at least three weeks before the exam period begins.
 
@@ -140,7 +140,7 @@ Students must arrive at the examination hall 15 minutes before the start time wi
     title: 'Academic Integrity & Plagiarism',
     source: 'policy',
     category: 'academics',
-    body: `Northbridge enforces a strict academic integrity standard. The following are considered misconduct: copying another student's work; allowing another student to copy your work; using unauthorized notes, devices, or external help during quizzes or exams; presenting AI-generated text as one's own without disclosure; ghost-writing; falsifying data in lab reports; and any form of plagiarism.
+    body: `COMSATS enforces a strict academic integrity standard. The following are considered misconduct: copying another student's work; allowing another student to copy your work; using unauthorized notes, devices, or external help during quizzes or exams; presenting AI-generated text as one's own without disclosure; ghost-writing; falsifying data in lab reports; and any form of plagiarism.
 
 All written submissions are screened against the university's plagiarism detection software. A similarity index above 19% (excluding references and properly quoted material) is flagged and reviewed. Verified misconduct results in:
 
@@ -166,12 +166,12 @@ The add/drop period is the first two weeks of the semester. During add/drop, cou
     title: 'Graduation Requirements',
     source: 'policy',
     category: 'academics',
-    body: `To graduate with a Northbridge undergraduate degree, a student must:
+    body: `To graduate with a COMSATS undergraduate degree, a student must:
 
 1. Complete all credit-hour requirements of the program (typically 130–144 credits, depending on the degree).
 2. Achieve a final CGPA of at least 2.0/4.0.
 3. Earn a grade of C or better in every major-required course.
-4. Complete at least 50% of the major's credit hours at Northbridge (residency requirement).
+4. Complete at least 50% of the major's credit hours at COMSATS (residency requirement).
 5. Complete the senior year project / capstone with a passing grade.
 6. Clear all financial dues with the Finance office.
 7. Submit a clearance form signed by the library, hostel (if applicable), department, and Finance.
@@ -186,7 +186,7 @@ Honors are awarded as: Summa Cum Laude (CGPA ≥ 3.85), Magna Cum Laude (3.65–
     title: 'Student Code of Conduct',
     source: 'policy',
     category: 'student_life',
-    body: `Northbridge expects all students to conduct themselves with integrity, respect, and responsibility. The following are prohibited on campus and at university-organized events:
+    body: `COMSATS expects all students to conduct themselves with integrity, respect, and responsibility. The following are prohibited on campus and at university-organized events:
 
 - Possession or use of alcohol, narcotics, or other intoxicants
 - Smoking inside academic buildings (designated outdoor smoking areas exist)
@@ -203,7 +203,7 @@ Disciplinary actions range from written warnings, fines, and community service t
     title: 'Dress Code',
     source: 'policy',
     category: 'student_life',
-    body: `Northbridge maintains a smart-modest dress code in keeping with Pakistani cultural norms. Students may wear shalwar kameez, kurta with trousers, or formal Western attire. The following are not permitted on campus:
+    body: `COMSATS maintains a smart-modest dress code in keeping with Pakistani cultural norms. Students may wear shalwar kameez, kurta with trousers, or formal Western attire. The following are not permitted on campus:
 
 - Sleeveless tops, shorts, or transparent clothing
 - Slippers or hawai chappal (closed shoes or formal sandals are required)
@@ -236,7 +236,7 @@ Late return fines are PKR 10 per day per item. Lost books require replacement at
     title: 'Sports Complex Facilities',
     source: 'services',
     category: 'sports',
-    body: `The Northbridge Sports Complex (SPT building) provides facilities for indoor and outdoor sports. The complex is open to all currently enrolled students, faculty, and staff with a valid ID card.
+    body: `The COMSATS Sports Complex (SPT building) provides facilities for indoor and outdoor sports. The complex is open to all currently enrolled students, faculty, and staff with a valid ID card.
 
 Facilities:
 - 25-meter indoor swimming pool (men's hours 6–9 AM and 5–8 PM; women's hours 9 AM–noon and 3–5 PM; co-ed family hour Sundays)
@@ -254,11 +254,11 @@ Hours: 6:00 AM to 10:00 PM, every day except public holidays. Equipment rental (
     title: 'Student Health Services',
     source: 'services',
     category: 'health',
-    body: `The Northbridge Health Centre is located on the ground floor of the Student Centre (STU building). It provides primary healthcare to all students, faculty, and staff free of charge.
+    body: `The COMSATS Health Centre is located on the ground floor of the Student Centre (STU building). It provides primary healthcare to all students, faculty, and staff free of charge.
 
 Services include: general consultation, basic diagnostics (BP, blood sugar, ECG), first aid, minor wound care, vaccinations (Hepatitis B, tetanus, seasonal flu), women's health consultations, and mental health screening. A registered female physician is available three days per week. Two qualified nurses are on duty during all opening hours.
 
-Hours: Monday–Friday 9:00 AM to 6:00 PM; Saturday 9:00 AM to 1:00 PM. After-hours emergencies are handled by the campus security control room (extension 1999), which can call an ambulance and arrange transfer to the partner hospital, Aga Khan University Hospital, where Northbridge maintains a referral arrangement.
+Hours: Monday–Friday 9:00 AM to 6:00 PM; Saturday 9:00 AM to 1:00 PM. After-hours emergencies are handled by the campus security control room (extension 1999), which can call an ambulance and arrange transfer to the partner hospital, Aga Khan University Hospital, where COMSATS maintains a referral arrangement.
 
 All students are required to carry student health insurance as part of their semester fee — claims and reimbursements are handled by the Finance office.`,
   },
@@ -280,7 +280,7 @@ All sessions are confidential and not recorded in the academic file. Students in
     category: 'career',
     body: `The Career Services Office helps students prepare for the job market and connects them with internship and graduate opportunities. Services are open from the second year onward and are free for all enrolled students and alumni up to two years post-graduation.
 
-Services include: resume and cover letter review, mock interviews, LinkedIn profile reviews, employer information sessions, and on-campus placement drives. The Annual Northbridge Career Fair is held every March in the Sports Complex and brings 80+ employers including Engro, Systems Limited, P&G Pakistan, Unilever, MCB, Habib Bank, S&P Global, 10Pearls, Afiniti, Bazaar Technologies, Daraz, KE, and several MNCs and start-ups.
+Services include: resume and cover letter review, mock interviews, LinkedIn profile reviews, employer information sessions, and on-campus placement drives. The Annual COMSATS Career Fair is held every March in the Sports Complex and brings 80+ employers including Engro, Systems Limited, P&G Pakistan, Unilever, MCB, Habib Bank, S&P Global, 10Pearls, Afiniti, Bazaar Technologies, Daraz, KE, and several MNCs and start-ups.
 
 Internships: a credit-bearing internship is required for most undergraduate programs (typically 6–8 weeks during the summer between third and fourth year). The Career Services portal lists vetted internship openings continuously. Students should consult their academic advisor about whether their internship qualifies for credit.`,
   },
@@ -289,7 +289,7 @@ Internships: a credit-bearing internship is required for most undergraduate prog
     title: 'IT Services, Wi-Fi & Lab Access',
     source: 'services',
     category: 'it',
-    body: `Northbridge provides campus-wide Wi-Fi (SSID: NU-Student) accessible with student portal credentials. Faculty and staff use NU-Faculty. A guest network (NU-Guest) is available for visitors with daily voucher codes obtainable from the front desk of any building.
+    body: `COMSATS provides campus-wide Wi-Fi (SSID: NU-Student) accessible with student portal credentials. Faculty and staff use NU-Faculty. A guest network (NU-Guest) is available for visitors with daily voucher codes obtainable from the front desk of any building.
 
 Every enrolled student receives:
 - A nu.edu.pk email account with 50 GB Google Workspace storage
@@ -309,7 +309,7 @@ For password resets, account issues, or hardware support, contact the IT Help De
     title: 'Tuition & Fee Structure',
     source: 'policy',
     category: 'finance',
-    body: `Tuition at Northbridge is charged per credit hour, with annual ceilings depending on the program. Spring 2026 fees (per semester):
+    body: `Tuition at COMSATS is charged per credit hour, with annual ceilings depending on the program. Spring 2026 fees (per semester):
 
 - Computing & Engineering programs: PKR 280,000–290,000
 - Health Sciences (Pharmacy, Public Health, Nutrition): PKR 270,000–290,000
@@ -319,21 +319,21 @@ For password resets, account issues, or hardware support, contact the IT Help De
 
 Additional charges: security deposit (refundable, PKR 25,000, paid once at admission), examination fee (PKR 8,000/semester), library and IT services (PKR 6,000/semester), student health insurance (PKR 4,500/semester), hostel (if availed; PKR 70,000/semester for shared room, PKR 110,000 for single room).
 
-Fees may be paid in full at the start of the semester or in two equal installments (first installment by week 1; second by week 8). Late payment incurs a surcharge of PKR 500/day up to a maximum of PKR 15,000. Payments are made through HBL, MCB, or Bank Alfalah branches via the Northbridge fee challan, or online through portal.nu.edu.pk.`,
+Fees may be paid in full at the start of the semester or in two equal installments (first installment by week 1; second by week 8). Late payment incurs a surcharge of PKR 500/day up to a maximum of PKR 15,000. Payments are made through HBL, MCB, or Bank Alfalah branches via the COMSATS fee challan, or online through portal.nu.edu.pk.`,
   },
   {
     slug: 'financial-aid-scholarships',
     title: 'Financial Aid & Scholarships',
     source: 'policy',
     category: 'finance',
-    body: `Northbridge offers both need-based financial aid and merit-based scholarships. Approximately 28% of undergraduate students receive some form of financial assistance.
+    body: `COMSATS offers both need-based financial aid and merit-based scholarships. Approximately 28% of undergraduate students receive some form of financial assistance.
 
 Merit scholarships (renewable each semester subject to CGPA):
 - Vice Chancellor's Honor Scholarship: 100% tuition waiver for top 5 students per intake (CGPA ≥ 3.85 to renew).
 - Dean's Merit Scholarship: 50% tuition waiver for top 10% of each college (CGPA ≥ 3.65 to renew).
 - Achievement Scholarship: 25% tuition waiver based on standardized test scores at admission.
 
-Need-based aid: the Northbridge Financial Assistance Programme (NFAP) supports students from families earning under PKR 200,000/month with up to 80% tuition waiver, evaluated by the Financial Aid Committee on the basis of family income statements, asset declarations, and a personal interview. Applications are submitted by 1 December for Spring and by 1 July for Fall.
+Need-based aid: the COMSATS Financial Assistance Programme (NFAP) supports students from families earning under PKR 200,000/month with up to 80% tuition waiver, evaluated by the Financial Aid Committee on the basis of family income statements, asset declarations, and a personal interview. Applications are submitted by 1 December for Spring and by 1 July for Fall.
 
 External scholarships: HEC Need-Based, USAID Merit and Need-Based, Pakistan Bait-ul-Mal, Akhuwat Education Programme, and various provincial endowments are facilitated by the Office of Student Affairs. Applications and deadlines are announced through the campus portal.`,
   },
@@ -344,7 +344,7 @@ External scholarships: HEC Need-Based, USAID Merit and Need-Based, Pakistan Bait
     title: 'Hostels & Residential Life',
     source: 'handbook',
     category: 'residence',
-    body: `Northbridge operates two on-campus hostels: the Iqbal Hostel for male students (capacity 320) and the Fatima Hostel for female students (capacity 280). Hostel admission is on a first-come, first-served basis, with priority given to out-of-Karachi students.
+    body: `COMSATS operates two on-campus hostels: the Iqbal Hostel for male students (capacity 320) and the Fatima Hostel for female students (capacity 280). Hostel admission is on a first-come, first-served basis, with priority given to out-of-Karachi students.
 
 Rooms are double-occupancy with attached or shared bathrooms; a limited number of single rooms are available at higher fees. Each hostel has a common room with TV and WiFi, a study hall open until 1 AM, a small canteen, and a prayer hall.
 
@@ -359,7 +359,7 @@ Hostel fees include three meals per day from a fixed-menu mess. Special dietary 
     title: 'Dining & Meal Plan Information',
     source: 'services',
     category: 'dining',
-    body: `Three dining outlets serve the Northbridge community: the Main Cafeteria in the Student Centre (STU), the Library Café in the Quaid Central Library, and Cha Bar near the College of Computing. All outlets are halal-certified and accept the Northbridge meal plan card and cash payments.
+    body: `Three dining outlets serve the COMSATS community: the Main Cafeteria in the Student Centre (STU), the Library Café in the Quaid Central Library, and Cha Bar near the College of Computing. All outlets are halal-certified and accept the COMSATS meal plan card and cash payments.
 
 Main Cafeteria hours: Monday–Friday 7:30 AM to 9:00 PM; weekends 9:00 AM to 7:00 PM. Daily menus rotate weekly and include desi staples (biryani, nihari, daal chawal, chicken karahi, qeema, pulao), continental options (sandwiches, pastas, burgers, salads), and breakfast items (paratha-anda, halwa puri, omelette, paratha-chai). A vegetarian counter operates daily.
 
@@ -367,7 +367,7 @@ The Library Café focuses on light meals — sandwiches, wraps, soups, samosas, 
 
 Cha Bar is a 24/7 self-service tea and coffee station with packaged snacks, popular with students working late in the COC labs.
 
-Meal plan: students may purchase a semester meal plan that provides credit at all three outlets at a 12% discount versus pay-as-you-go. Plans are available in three tiers (PKR 25,000 / 45,000 / 70,000 per semester) and can be topped up at the Finance office or online. Allergens, calorie counts, and nutrition information are posted at each outlet and on the Northbridge dining portal.`,
+Meal plan: students may purchase a semester meal plan that provides credit at all three outlets at a 12% discount versus pay-as-you-go. Plans are available in three tiers (PKR 25,000 / 45,000 / 70,000 per semester) and can be topped up at the Finance office or online. Allergens, calorie counts, and nutrition information are posted at each outlet and on the COMSATS dining portal.`,
   },
 
   // ───────── Clubs ─────────
@@ -376,9 +376,9 @@ Meal plan: students may purchase a semester meal plan that provides credit at al
     title: 'Student Clubs & Societies',
     source: 'services',
     category: 'student_life',
-    body: `Northbridge has 20 active student-run clubs and societies covering academic, professional, cultural, sports, community service, and arts interests. Each club is led by an elected president and has a faculty advisor; members can hold roles as vice president, secretary, treasurer, or general member.
+    body: `COMSATS has 20 active student-run clubs and societies covering academic, professional, cultural, sports, community service, and arts interests. Each club is led by an elected president and has a faculty advisor; members can hold roles as vice president, secretary, treasurer, or general member.
 
-Major clubs include the Northbridge Computing Society (NUCS), the IEEE Student Branch, the Entrepreneurship Society, the Debating Society, the Dramatics Society, the Music Society, the Photography Club, the Adventure & Trekking Club, the Community Service Society, the Literary Society, and the Astronomy Club.
+Major clubs include the COMSATS Computing Society (NUCS), the IEEE Student Branch, the Entrepreneurship Society, the Debating Society, the Dramatics Society, the Music Society, the Photography Club, the Adventure & Trekking Club, the Community Service Society, the Literary Society, and the Astronomy Club.
 
 Joining: the annual Club Fair is held in the second week of each semester at the Student Centre lawn. Students may join by signing up at the club booth or online through portal.nu.edu.pk/clubs. Most clubs have no joining fee; some (Adventure Club, Photography Club) charge nominal annual fees to cover equipment.
 
@@ -492,7 +492,7 @@ Q: Can I send my transcript directly to a foreign university?
 A: Yes. Specify the recipient institution in the request and the Registrar will mail a sealed transcript directly to the institution's evaluation office. Many institutions accept e-transcripts via secure email — confirm with the recipient institution which format they require.
 
 Q: How is degree verification handled (HEC attestation)?
-A: Degrees can be attested by HEC after the student receives their original degree certificate. Northbridge issues the original degree at convocation. For HEC attestation, walk in to any HEC regional office with your degree, transcript, CNIC, and the appropriate fee. Northbridge does not handle HEC attestation directly but can verify a graduate's record to HEC on request.
+A: Degrees can be attested by HEC after the student receives their original degree certificate. COMSATS issues the original degree at convocation. For HEC attestation, walk in to any HEC regional office with your degree, transcript, CNIC, and the appropriate fee. COMSATS does not handle HEC attestation directly but can verify a graduate's record to HEC on request.
 
 Q: I graduated. Can I still get a transcript?
 A: Yes. Alumni can request transcripts indefinitely. After two years post-graduation, the request must be initiated by emailing registrar@nu.edu.pk with a scan of your CNIC and original degree.`,
@@ -536,13 +536,13 @@ A: Original degrees are issued at the convocation ceremony. If you graduate in a
     title: 'FAQ — International Students',
     source: 'faq',
     category: 'admissions',
-    body: `Q: I'm not a Pakistani citizen. Can I apply to Northbridge?
-A: Yes. Northbridge welcomes international students from across the GCC, South Asia, Africa, and Central Asia. International applicants follow the same online admissions process as domestic students but are exempt from the NAT-NU/ECAT requirement if they hold equivalent qualifications (IB Diploma, A-Levels, or country-of-origin standardized assessments accepted by IBCC).
+    body: `Q: I'm not a Pakistani citizen. Can I apply to COMSATS?
+A: Yes. COMSATS welcomes international students from across the GCC, South Asia, Africa, and Central Asia. International applicants follow the same online admissions process as domestic students but are exempt from the NAT-NU/ECAT requirement if they hold equivalent qualifications (IB Diploma, A-Levels, or country-of-origin standardized assessments accepted by IBCC).
 
 Q: What documents do I need beyond what domestic applicants provide?
 A: A valid passport, academic transcripts attested by the relevant authorities of your home country, an English-language proficiency certificate (IELTS 6.0 or TOEFL iBT 70 — waived if instruction was in English), and a Pakistan study visa or arrangement to obtain one.
 
-Q: Does Northbridge help with the student visa?
+Q: Does COMSATS help with the student visa?
 A: Yes. After your conditional acceptance and fee deposit, the Office of International Affairs issues a sponsorship letter that you submit to the Pakistani embassy in your country to obtain a Type C study visa. Visa renewals during your studies are handled with the help of the same office.
 
 Q: Is there international-student housing?

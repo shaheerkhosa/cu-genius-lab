@@ -15,11 +15,27 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  attendanceRecords, 
-  academicAlerts,
-} from "@/data/academicDashboardData";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+interface AttendanceRow {
+  courseCode: string;
+  courseName: string;
+  attended: number;
+  total: number;
+  percentage: number;
+  status: "good" | "warning" | "critical";
+}
+
+interface AlertItem {
+  id: string;
+  type: "attendance" | "marks";
+  severity: "info" | "warning" | "critical";
+  courseCode: string;
+  message: string;
+  actionRequired: string;
+}
+
+const ATTENDANCE_FLOOR = 75;
 
 interface AssessmentItem {
   id: string;
@@ -66,6 +82,8 @@ const Progress = () => {
   const [upcomingAssessments, setUpcomingAssessments] = useState<AssessmentItem[]>([]);
   const [courseMarks, setCourseMarks] = useState<CourseMarkSummary[]>([]);
   const [performanceTrend, setPerformanceTrend] = useState<TrendPoint[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
@@ -152,6 +170,92 @@ const Progress = () => {
         setCourseMarks([]);
         setPerformanceTrend([]);
       }
+
+      // Real attendance — aggregated per course.
+      const courseNameMap = new Map<string, string>();
+      if (enrolledCodes.length > 0) {
+        const { data: tc } = await supabase
+          .from('teacher_courses')
+          .select('course_code, course_name')
+          .in('course_code', enrolledCodes);
+        (tc ?? []).forEach((c) => courseNameMap.set(c.course_code, c.course_name));
+      }
+
+      const { data: attendanceRows } = await supabase
+        .from('attendance')
+        .select('course_code, status')
+        .eq('student_id', user.id);
+
+      const attMap = new Map<string, { attended: number; total: number }>();
+      for (const r of attendanceRows ?? []) {
+        const existing = attMap.get(r.course_code) ?? { attended: 0, total: 0 };
+        existing.total++;
+        // Only `present` counts toward attendance percentage. `late` is
+        // shown separately in the breakdown but doesn't roll into the
+        // attendance ratio (matches the iOS app and the AI assistant).
+        if (r.status === 'present') existing.attended++;
+        attMap.set(r.course_code, existing);
+      }
+
+      const attendanceList: AttendanceRow[] = Array.from(attMap.entries())
+        .map(([code, d]) => {
+          const pct = d.total > 0 ? Math.round((d.attended / d.total) * 100) : 0;
+          const status: AttendanceRow['status'] =
+            pct >= 85 ? 'good' : pct >= ATTENDANCE_FLOOR ? 'warning' : 'critical';
+          return {
+            courseCode: code,
+            courseName: courseNameMap.get(code) ?? code,
+            attended: d.attended,
+            total: d.total,
+            percentage: pct,
+            status,
+          };
+        })
+        .sort((a, b) => a.percentage - b.percentage);
+      setAttendance(attendanceList);
+
+      // Computed alerts: low attendance, low marks.
+      const computedAlerts: AlertItem[] = [];
+      attendanceList
+        .filter((a) => a.percentage < ATTENDANCE_FLOOR)
+        .forEach((a) => {
+          computedAlerts.push({
+            id: `att-${a.courseCode}`,
+            type: 'attendance',
+            severity: a.percentage < 70 ? 'critical' : 'warning',
+            courseCode: a.courseCode,
+            message: 'Attendance below threshold',
+            actionRequired: `Currently ${a.percentage}% — minimum is ${ATTENDANCE_FLOOR}%`,
+          });
+        });
+      // Marks alerts derived from courseMarks (computed earlier in this fn body via setCourseMarks).
+      // We re-derive locally because state hasn't flushed yet.
+      if (myMarks && myMarks.length > 0) {
+        const courseMap = new Map<string, { obtained: number; possible: number }>();
+        for (const mark of myMarks) {
+          const a = mark.assessments as { course_code: string; total_marks: number } | null;
+          if (!a) continue;
+          const existing = courseMap.get(a.course_code) ?? { obtained: 0, possible: 0 };
+          existing.obtained += mark.marks_obtained as number;
+          existing.possible += a.total_marks;
+          courseMap.set(a.course_code, existing);
+        }
+        for (const [code, d] of courseMap.entries()) {
+          if (d.possible <= 0) continue;
+          const pct = Math.round((d.obtained / d.possible) * 100);
+          if (pct < 60) {
+            computedAlerts.push({
+              id: `marks-${code}`,
+              type: 'marks',
+              severity: pct < 50 ? 'critical' : 'warning',
+              courseCode: code,
+              message: 'Marks need improvement',
+              actionRequired: `Overall grade at ${pct}%`,
+            });
+          }
+        }
+      }
+      setAlerts(computedAlerts);
 
       setLoading(false);
     };
@@ -347,46 +451,62 @@ const Progress = () => {
                   Alerts
                 </h2>
                 <div className="space-y-3">
-                  {academicAlerts.map((alert) => (
-                    <Card 
-                      key={alert.id}
-                      className={`backdrop-blur-sm border ${getAlertColor(alert.severity)}`}
-                    >
-                      <CardContent className="p-4">
-                        <p className="font-semibold text-sm">{alert.courseCode}</p>
-                        <p className="text-xs font-medium mt-1">{alert.message}</p>
-                        <p className="text-xs text-muted-foreground mt-2">{alert.actionRequired}</p>
+                  {alerts.length === 0 ? (
+                    <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
+                      <CardContent className="p-4 text-center">
+                        <p className="text-xs text-muted-foreground">All clear — no active alerts.</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    alerts.map((alert) => (
+                      <Card
+                        key={alert.id}
+                        className={`backdrop-blur-sm border ${getAlertColor(alert.severity)}`}
+                      >
+                        <CardContent className="p-4">
+                          <p className="font-semibold text-sm">{alert.courseCode}</p>
+                          <p className="text-xs font-medium mt-1">{alert.message}</p>
+                          <p className="text-xs text-muted-foreground mt-2">{alert.actionRequired}</p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold mb-3">Attendance</h3>
                 <div className="space-y-3">
-                  {attendanceRecords.map((record) => (
-                    <Card 
-                      key={record.courseCode}
-                      className={`backdrop-blur-sm border border-border/50 ${getAttendanceColor(record.status)}`}
-                    >
-                      <CardContent className="p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{record.courseCode}</p>
-                            <p className="text-xs text-muted-foreground truncate">{record.courseName}</p>
-                          </div>
-                          <Badge variant="secondary">
-                            {record.percentage}%
-                          </Badge>
-                        </div>
-                        <ProgressBar value={record.percentage} className="h-1.5" />
-                        <p className="text-xs text-muted-foreground">
-                          {record.attended}/{record.total} classes
-                        </p>
+                  {attendance.length === 0 ? (
+                    <Card className="bg-card/50 backdrop-blur-sm border border-border/50">
+                      <CardContent className="p-4 text-center">
+                        <p className="text-xs text-muted-foreground">No attendance records yet.</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    attendance.map((record) => (
+                      <Card
+                        key={record.courseCode}
+                        className={`backdrop-blur-sm border border-border/50 ${getAttendanceColor(record.status)}`}
+                      >
+                        <CardContent className="p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{record.courseCode}</p>
+                              <p className="text-xs text-muted-foreground truncate">{record.courseName}</p>
+                            </div>
+                            <Badge variant="secondary">
+                              {record.percentage}%
+                            </Badge>
+                          </div>
+                          <ProgressBar value={record.percentage} className="h-1.5" />
+                          <p className="text-xs text-muted-foreground">
+                            {record.attended}/{record.total} classes
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

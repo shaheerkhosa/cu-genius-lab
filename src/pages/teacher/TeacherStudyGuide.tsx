@@ -6,47 +6,45 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyGuideDisplay } from '@/components/StudyGuideDisplay';
-import { sampleStudent } from '@/data/sampleStudentData';
-import { getCurrentSemesterPerformance, SubjectPerformance, CLOScore } from '@/lib/performanceAnalyzer';
+import { SubjectPerformance, CLOScore } from '@/lib/performanceAnalyzer';
+import { fetchTeacherClassPerformance } from '@/lib/realPerformance';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { gsap } from 'gsap';
-import { ArrowRight, Sparkles, ChevronLeft, BookOpen, Zap, Users } from 'lucide-react';
-
-// Simulate class averages from individual performance data
-// In a real system this would come from aggregated class data
-const simulateClassAverage = (performance: number) => {
-  // Add slight variation to make it look like a class average
-  const offset = Math.round((Math.random() - 0.5) * 10);
-  return Math.max(0, Math.min(100, Math.round(performance + offset)));
-};
+import { ArrowRight, Sparkles, ChevronLeft, BookOpen, Zap, Users, Loader2 } from 'lucide-react';
 
 const TeacherStudyGuide = () => {
-  const [currentSubjects] = useState(() => getCurrentSemesterPerformance(sampleStudent));
+  const [currentSubjects, setCurrentSubjects] = useState<SubjectPerformance[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<SubjectPerformance | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingTopic, setGeneratingTopic] = useState<number | null>(null);
   const [studyGuide, setStudyGuide] = useState<string | null>(null);
 
-  // Memoize class averages so they don't change on re-render
-  const [classAverages] = useState(() => {
-    const avgs: Record<string, number> = {};
-    currentSubjects.forEach(s => {
-      avgs[s.code] = simulateClassAverage(s.overallPerformance);
-    });
-    return avgs;
-  });
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoadingSubjects(false); return; }
+      try {
+        const subjects = await fetchTeacherClassPerformance(user.id);
+        setCurrentSubjects(subjects);
+      } catch (err) {
+        console.error('Failed to load class performance', err);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    })();
+  }, []);
 
-  const [cloClassAverages] = useState(() => {
-    const avgs: Record<string, Record<number, number>> = {};
-    currentSubjects.forEach(s => {
-      avgs[s.code] = {};
-      s.cloScores.forEach(clo => {
-        avgs[s.code][clo.cloNumber] = simulateClassAverage(clo.score);
-      });
-    });
-    return avgs;
-  });
+  // Class averages now come from real aggregated marks (not simulated).
+  // overallPerformance on each SubjectPerformance is the class average,
+  // and each clo.score is the per-assessment class average.
+  const getClassAvg = (code: string) =>
+    currentSubjects.find((s) => s.code === code)?.overallPerformance ?? 0;
+  const getCLOClassAvg = (code: string, cloNum: number) => {
+    const subject = currentSubjects.find((s) => s.code === code);
+    return subject?.cloScores.find((c) => c.cloNumber === cloNum)?.score ?? 0;
+  };
 
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -67,9 +65,6 @@ const TeacherStudyGuide = () => {
       gsap.fromTo(contentRef.current, { opacity: 0, x: selectedSubject ? 30 : -30 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' });
     }
   }, [selectedSubject]);
-
-  const getClassAvg = (code: string) => classAverages[code] ?? 0;
-  const getCLOClassAvg = (code: string, cloNum: number) => cloClassAverages[code]?.[cloNum] ?? 0;
 
   const generateForSubject = async (subject: SubjectPerformance) => {
     setGenerating(true);
@@ -183,6 +178,18 @@ const TeacherStudyGuide = () => {
                   </Badge>
                 </div>
 
+                {loadingSubjects ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : currentSubjects.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 backdrop-blur p-12 text-center max-w-2xl mx-auto space-y-2">
+                    <h3 className="text-lg font-semibold">No courses yet</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Create a course in the Upload tab to start tracking class performance.
+                    </p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
                   {currentSubjects.map((subject) => {
                     const avg = getClassAvg(subject.code);
@@ -223,6 +230,7 @@ const TeacherStudyGuide = () => {
                     );
                   })}
                 </div>
+                )}
               </div>
             ) : (
               <div className="space-y-6 max-w-4xl mx-auto">

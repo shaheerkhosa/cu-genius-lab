@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Embed the Northbridge knowledge-base corpus and write to Supabase.
+// Embed the COMSATS knowledge-base corpus and write to Supabase.
 //
 // Usage:
 //   VOYAGE_API_KEY=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/ingest/embed-corpus.mjs

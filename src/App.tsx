@@ -14,6 +14,9 @@ import Progress from "./pages/Progress";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 import StudentQuiz from "./pages/StudentQuiz";
+import StudentAssignments from "./pages/StudentAssignments";
+import StudentAnnouncements from "./pages/StudentAnnouncements";
+import StudentAttendance from "./pages/StudentAttendance";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -21,6 +24,7 @@ import TeacherPlaceholder from "./pages/teacher/TeacherPlaceholder";
 import TeacherStudyGuide from "./pages/teacher/TeacherStudyGuide";
 import TeacherProgress from "./pages/teacher/TeacherProgress";
 import TeacherUpload from "./pages/teacher/TeacherUpload";
+import TeacherAnnouncements from "./pages/teacher/TeacherAnnouncements";
 import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 
 const queryClient = new QueryClient();
@@ -44,11 +48,15 @@ const App = () => (
             <Route path="/progress" element={<Progress />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/quizzes" element={<StudentQuiz />} />
+            <Route path="/assignments" element={<StudentAssignments />} />
+            <Route path="/announcements" element={<StudentAnnouncements />} />
+            <Route path="/attendance" element={<StudentAttendance />} />
             {/* Account routes (shared by student + teacher) */}
             <Route path="/account/change-password" element={<ChangePassword />} />
             {/* Teacher routes */}
             <Route path="/teacher" element={<TeacherDashboard />} />
             <Route path="/teacher/upload" element={<TeacherUpload />} />
+            <Route path="/teacher/announcements" element={<TeacherAnnouncements />} />
             <Route path="/teacher/schedule" element={<TeacherSchedule />} />
             <Route path="/teacher/course" element={<TeacherStudyGuide />} />
             <Route path="/teacher/progress" element={<TeacherProgress />} />

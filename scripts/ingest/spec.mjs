@@ -1,8 +1,8 @@
-// Northbridge University — fictional Karachi-based, HEC-recognized university.
+// COMSATS University Islamabad — fictional Karachi-based, HEC-recognized university.
 // Single source of truth for the seeded dataset shape.
 
 export const UNIVERSITY = {
-  name: 'Northbridge University',
+  name: 'COMSATS University Islamabad',
   shortName: 'NU',
   city: 'Karachi',
   foundedYear: 1962,
@@ -21,7 +21,7 @@ export const COLLEGES = [
   { code: 'COL', name: 'College of Law', departments: ['Law'] },
 ];
 
-// Department -> course code prefix (for Northbridge codes like CS-101)
+// Department -> course code prefix (for COMSATS codes like CS-101)
 export const DEPT_PREFIX = {
   'Computer Science': 'CS',
   'Software Engineering': 'SE',
@@ -181,13 +181,13 @@ export const RESEARCH_AREAS = {
 };
 
 export const CLUB_DEFS = [
-  { name: 'Northbridge Computing Society',  category: 'academic',     description: 'The flagship CS student society — hosts hackathons, workshops, and the annual NU CodeFest.' },
+  { name: 'COMSATS Computing Society',  category: 'academic',     description: 'The flagship CS student society — hosts hackathons, workshops, and the annual NU CodeFest.' },
   { name: 'AI & Robotics Club',             category: 'academic',     description: 'Builds robots, runs ML reading groups, fields teams for the National Engineering Robotics Contest.' },
   { name: 'Cybersecurity Club',             category: 'academic',     description: 'CTF practice, ethical-hacking workshops, and an annual capture-the-flag tournament.' },
   { name: 'Entrepreneurs Society',          category: 'professional', description: 'Startup pitch nights, founder talks, and the NU Venture Cup.' },
   { name: 'Finance & Investment Club',      category: 'professional', description: 'Stock-pitch competitions, runs the student-managed investment portfolio.' },
   { name: 'Debating Society',               category: 'academic',     description: 'Competes in BP, WSDC and parliamentary formats. Hosts the All-Sindh University Open.' },
-  { name: 'Literary Society',               category: 'cultural',     description: 'Poetry readings, short-story workshops, the annual Northbridge Anthology.' },
+  { name: 'Literary Society',               category: 'cultural',     description: 'Poetry readings, short-story workshops, the annual COMSATS Anthology.' },
   { name: 'Photography Club',               category: 'arts',         description: 'Weekly photo walks across Karachi, exhibitions in the Humanities Wing gallery.' },
   { name: 'Dramatics Society',              category: 'arts',         description: 'Stages two full productions a year. Improv nights every other Friday.' },
   { name: 'Music Society',                  category: 'arts',         description: 'Open-mic nights, choir, instrumental ensemble; performs at convocation.' },
@@ -197,19 +197,19 @@ export const CLUB_DEFS = [
   { name: 'Adventure Society',              category: 'sports',       description: 'Hiking, trekking and climbing trips — Hingol, Margalla, Hunza.' },
   { name: 'Rotaract Club',                  category: 'community',    description: 'Service projects: blood drives, literacy programmes, environmental clean-ups.' },
   { name: 'Environmental Society',          category: 'community',    description: 'Campus tree-planting, plastic-free week, climate-policy seminars.' },
-  { name: 'Model United Nations',           category: 'professional', description: 'Trains delegates and hosts the annual Northbridge MUN conference.' },
+  { name: 'Model United Nations',           category: 'professional', description: 'Trains delegates and hosts the annual COMSATS MUN conference.' },
   { name: 'IEEE Student Branch',            category: 'professional', description: 'Industry talks, technical workshops, IEEEXtreme programming contest.' },
   { name: 'ACM Student Chapter',            category: 'academic',     description: 'Programming contest training; affiliated with ACM-ICPC regionals.' },
   { name: 'Islamic Society',                category: 'community',    description: 'Quran study circles, Ramadan iftar dinners, Friday lectures.' },
 ];
 
 export const EVENT_TEMPLATES = [
-  { title: 'Hackathon: NU CodeFest 2026',                  category: 'academic', org: 'Northbridge Computing Society', dur: 36, capacity: 200 },
+  { title: 'Hackathon: NU CodeFest 2026',                  category: 'academic', org: 'COMSATS Computing Society', dur: 36, capacity: 200 },
   { title: 'Career Fair (Spring 2026)',                    category: 'career',   org: 'Office of Career Services',     dur: 8,  capacity: 800 },
   { title: 'Guest Lecture: AI in Healthcare',              category: 'academic', org: 'Department of Computer Science', dur: 1, capacity: 150 },
   { title: 'Convocation 2026',                             category: 'academic', org: 'Office of the Registrar',       dur: 4,  capacity: 900 },
   { title: 'Cricket Inter-College Final',                  category: 'sports',   org: 'Sports Council',                dur: 6,  capacity: 600 },
-  { title: 'Northbridge MUN Conference',                   category: 'academic', org: 'Model United Nations',          dur: 24, capacity: 250 },
+  { title: 'COMSATS MUN Conference',                   category: 'academic', org: 'Model United Nations',          dur: 24, capacity: 250 },
   { title: 'Spring Music Festival',                        category: 'cultural', org: 'Music Society',                 dur: 5,  capacity: 700 },
   { title: 'Workshop: Resume & LinkedIn Clinic',           category: 'workshop', org: 'Office of Career Services',     dur: 2,  capacity: 60 },
   { title: 'Workshop: Intro to Machine Learning',          category: 'workshop', org: 'AI & Robotics Club',            dur: 3,  capacity: 80 },

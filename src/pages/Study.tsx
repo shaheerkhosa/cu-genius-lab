@@ -7,15 +7,31 @@ import { Label } from '@/components/ui/label';
 import { SubjectCard } from '@/components/SubjectCard';
 import { SubjectDetailModal } from '@/components/SubjectDetailModal';
 import { StudyGuideDisplay } from '@/components/StudyGuideDisplay';
-import { sampleStudent } from '@/data/sampleStudentData';
-import { getCurrentSemesterPerformance, SubjectPerformance, getSubjectColor } from '@/lib/performanceAnalyzer';
+import { SubjectPerformance, getSubjectColor } from '@/lib/performanceAnalyzer';
+import { fetchStudentSubjectPerformance } from '@/lib/realPerformance';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { gsap } from 'gsap';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 
 const Study = () => {
-  const [currentSubjects] = useState(() => getCurrentSemesterPerformance(sampleStudent));
+  const [currentSubjects, setCurrentSubjects] = useState<SubjectPerformance[]>([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoadingSubjects(false); return; }
+      try {
+        const subjects = await fetchStudentSubjectPerformance(user.id);
+        setCurrentSubjects(subjects);
+      } catch (err) {
+        console.error('Failed to load subjects', err);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    })();
+  }, []);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<SubjectPerformance | null>(null);
   const [focusArea, setFocusArea] = useState('');
@@ -29,8 +45,8 @@ const Study = () => {
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (hasAnimated.current) return;
-    
+    if (hasAnimated.current || loadingSubjects) return;
+
     // Page entrance animations
     const tl = gsap.timeline();
 
@@ -80,7 +96,7 @@ const Study = () => {
       
       hasAnimated.current = true;
     }
-  }, []);
+  }, [loadingSubjects, currentSubjects.length]);
 
   const handleGenerateGuide = async () => {
     if (selectedSubjects.length === 0) {
@@ -176,22 +192,35 @@ const Study = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-              {currentSubjects.map((subject, index) => (
-                <div
-                  key={subject.code}
-                  ref={(el) => (cardRefs.current[index] = el)}
-                >
-                  <SubjectCard
-                    subject={subject}
-                    selected={selectedSubjects.includes(subject.code)}
-                    onSelect={() => toggleSubjectSelection(subject.code)}
-                    onMoreInfo={() => setSelectedSubject(subject)}
-                    colorClass={getSubjectColor(subject.overallPerformance)}
-                  />
-                </div>
-              ))}
-            </div>
+            {loadingSubjects ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : currentSubjects.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 backdrop-blur p-12 text-center max-w-2xl mx-auto space-y-2">
+                <h3 className="text-lg font-semibold">No enrolled courses yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Once you're enrolled in courses with graded assessments, your subjects will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+                {currentSubjects.map((subject, index) => (
+                  <div
+                    key={subject.code}
+                    ref={(el) => (cardRefs.current[index] = el)}
+                  >
+                    <SubjectCard
+                      subject={subject}
+                      selected={selectedSubjects.includes(subject.code)}
+                      onSelect={() => toggleSubjectSelection(subject.code)}
+                      onMoreInfo={() => setSelectedSubject(subject)}
+                      colorClass={getSubjectColor(subject.overallPerformance)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Focus Area (Optional) */}

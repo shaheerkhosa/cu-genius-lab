@@ -98,6 +98,98 @@ const STUDENTS_PER_BATCH = 50
 const TEST_DOMAIN = '@test.edu'
 const TEST_PASSWORD = 'Test@123'
 
+// ── Question bank for live online quizzes (anti-cheat demo) ─────────────
+// Each entry is shaped to match public.quiz_questions. We pick 5 per quiz.
+// Questions are intentionally generic CS/foundations so they fit any course.
+type Q = { question_text: string; option_a: string; option_b: string; option_c: string; option_d: string; correct_option: 'a'|'b'|'c'|'d' }
+
+const QUESTION_BANK: Record<string, Q[]> = {
+  CS: [
+    { question_text: 'Time complexity of binary search on a sorted array of n elements is:',
+      option_a: 'O(n)', option_b: 'O(log n)', option_c: 'O(n log n)', option_d: 'O(1)', correct_option: 'b' },
+    { question_text: 'Which data structure follows Last-In-First-Out (LIFO) ordering?',
+      option_a: 'Queue', option_b: 'Linked list', option_c: 'Stack', option_d: 'Tree', correct_option: 'c' },
+    { question_text: 'In the OSI model, the Transport layer is layer number:',
+      option_a: '3', option_b: '4', option_c: '5', option_d: '7', correct_option: 'b' },
+    { question_text: 'Which of the following is a non-volatile storage medium?',
+      option_a: 'RAM', option_b: 'Cache', option_c: 'Registers', option_d: 'SSD', correct_option: 'd' },
+    { question_text: 'A process that is waiting for an I/O operation to complete is in which state?',
+      option_a: 'Ready', option_b: 'Running', option_c: 'Blocked', option_d: 'Terminated', correct_option: 'c' },
+    { question_text: 'Which SQL clause is used to filter rows after a GROUP BY?',
+      option_a: 'WHERE', option_b: 'HAVING', option_c: 'FILTER', option_d: 'ORDER BY', correct_option: 'b' },
+    { question_text: 'TCP differs from UDP primarily because TCP is:',
+      option_a: 'Faster', option_b: 'Connectionless', option_c: 'Reliable and connection-oriented', option_d: 'Used only for streaming', correct_option: 'c' },
+    { question_text: 'Which sorting algorithm has worst-case time complexity O(n log n)?',
+      option_a: 'Bubble sort', option_b: 'Insertion sort', option_c: 'Quick sort', option_d: 'Merge sort', correct_option: 'd' },
+    { question_text: 'A hash table collision can be resolved using:',
+      option_a: 'Chaining', option_b: 'Indexing', option_c: 'Recursion', option_d: 'Pipelining', correct_option: 'a' },
+    { question_text: 'Which HTTP status code indicates "Not Found"?',
+      option_a: '200', option_b: '301', option_c: '404', option_d: '500', correct_option: 'c' },
+    { question_text: 'Symmetric encryption uses:',
+      option_a: 'A public/private key pair', option_b: 'The same key for encryption and decryption', option_c: 'A one-way hash', option_d: 'No key at all', correct_option: 'b' },
+    { question_text: 'Supervised learning requires:',
+      option_a: 'Only unlabelled data', option_b: 'Labelled training data', option_c: 'A reward signal', option_d: 'No data', correct_option: 'b' },
+  ],
+  MATH: [
+    { question_text: 'The derivative of sin(x) with respect to x is:',
+      option_a: 'cos(x)', option_b: '-sin(x)', option_c: '-cos(x)', option_d: 'tan(x)', correct_option: 'a' },
+    { question_text: 'A square matrix A is invertible if and only if:',
+      option_a: 'det(A) = 0', option_b: 'det(A) ≠ 0', option_c: 'A is symmetric', option_d: 'A is diagonal', correct_option: 'b' },
+    { question_text: 'The integral of 1/x dx is:',
+      option_a: 'ln|x| + C', option_b: '1/x² + C', option_c: 'x ln(x) + C', option_d: 'e^x + C', correct_option: 'a' },
+    { question_text: 'For independent events A and B, P(A ∩ B) equals:',
+      option_a: 'P(A) + P(B)', option_b: 'P(A) × P(B)', option_c: 'P(A) − P(B)', option_d: 'max(P(A), P(B))', correct_option: 'b' },
+    { question_text: 'The eigenvalues of the 2×2 identity matrix are:',
+      option_a: '0 and 0', option_b: '1 and 1', option_c: '1 and -1', option_d: '0 and 1', correct_option: 'b' },
+  ],
+  PHY: [
+    { question_text: 'The SI unit of electric current is the:',
+      option_a: 'Volt', option_b: 'Watt', option_c: 'Ampere', option_d: 'Ohm', correct_option: 'c' },
+    { question_text: 'Newton\'s second law of motion is expressed as:',
+      option_a: 'F = mv', option_b: 'F = ma', option_c: 'E = mc²', option_d: 'p = mv', correct_option: 'b' },
+    { question_text: 'Ohm\'s law relates voltage (V), current (I) and resistance (R) as:',
+      option_a: 'V = I + R', option_b: 'V = I × R', option_c: 'V = I / R', option_d: 'V = I − R', correct_option: 'b' },
+  ],
+  ENG: [
+    { question_text: 'Which of the following sentences is in the passive voice?',
+      option_a: 'The team won the match.', option_b: 'The match was won by the team.', option_c: 'They are winning.', option_d: 'Win the match!', correct_option: 'b' },
+    { question_text: 'A "thesis statement" in an essay primarily serves to:',
+      option_a: 'Cite a source', option_b: 'State the main argument', option_c: 'Introduce a counterexample', option_d: 'Conclude the essay', correct_option: 'b' },
+    { question_text: 'Which punctuation mark introduces a list?',
+      option_a: 'Comma', option_b: 'Colon', option_c: 'Semicolon', option_d: 'Hyphen', correct_option: 'b' },
+  ],
+  MGT: [
+    { question_text: 'A SWOT analysis examines:',
+      option_a: 'Sales, Workflow, Output, Trade', option_b: 'Strengths, Weaknesses, Opportunities, Threats', option_c: 'Strategy, Workforce, Operations, Tactics', option_d: 'Suppliers, Workers, Owners, Targets', correct_option: 'b' },
+    { question_text: 'In project management, the critical path is:',
+      option_a: 'The shortest sequence of tasks', option_b: 'The longest sequence of dependent tasks that determines project duration', option_c: 'The cheapest path', option_d: 'The path with most resources', correct_option: 'b' },
+    { question_text: 'Which of these is NOT one of Porter\'s five forces?',
+      option_a: 'Threat of new entrants', option_b: 'Bargaining power of buyers', option_c: 'Government regulation', option_d: 'Competitive rivalry', correct_option: 'c' },
+  ],
+  HUM: [
+    { question_text: 'A common ethical principle that requires avoiding harm is called:',
+      option_a: 'Beneficence', option_b: 'Non-maleficence', option_c: 'Autonomy', option_d: 'Justice', correct_option: 'b' },
+    { question_text: 'Plagiarism is best described as:',
+      option_a: 'Citing your sources', option_b: 'Presenting another\'s work as your own', option_c: 'Paraphrasing with attribution', option_d: 'Quoting directly', correct_option: 'b' },
+    { question_text: 'Technical writing is characterised by:',
+      option_a: 'Figurative language', option_b: 'Clarity, precision and audience-awareness', option_c: 'Personal opinion', option_d: 'Open-ended interpretation', correct_option: 'b' },
+  ],
+}
+
+// Schedule offsets for the live online quiz (the demo Quiz 1).
+// Goes live ~1 hour ago, stays open for 7 days from seed time.
+const QUIZ_LIVE_START_OFFSET_MS = -60 * 60 * 1000           // -1 hour
+const QUIZ_LIVE_END_OFFSET_MS = 7 * 24 * 60 * 60 * 1000     // +7 days
+
+function pickQuizQuestions(dept: string, marksPerQuestion: number): Array<Q & { marks: number }> {
+  const primary = QUESTION_BANK[dept] || QUESTION_BANK.CS
+  const fallback = QUESTION_BANK.CS
+  const pool = primary.length >= 5 ? primary : [...primary, ...fallback]
+  // Shuffle a copy and take 5
+  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 5)
+  return shuffled.map(q => ({ ...q, marks: marksPerQuestion }))
+}
+
 function pad(n: number, len = 3) { return String(n).padStart(len, '0') }
 function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)] }
 function randomScore(total: number, difficulty = 0.72) {
@@ -115,18 +207,36 @@ async function batchInsert(supabase: any, table: string, rows: any[], size = 50)
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
-async function getTestUsers(supabase: any) {
-  // List all users and filter test ones
-  const allUsers: any[] = []
-  let page = 1
-  while (true) {
-    const { data: { users }, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error || !users || users.length === 0) break
-    allUsers.push(...users)
-    if (users.length < 1000) break
-    page++
+// We query the public.profiles table directly via PostgREST. The auth admin
+// listUsers endpoint silently returns empty pages above a low per_page cap,
+// which broke phaseData. profiles is mirrored from auth.users by an existing
+// trigger, so it's reliable, paginated cleanly by PostgREST, and gives us
+// the exact fields we need: id, email, username.
+async function getTestUsers(_supabase: any) {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+  const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const url = `${SUPABASE_URL}/rest/v1/profiles?email=like.*${encodeURIComponent(TEST_DOMAIN)}&select=id,email,username`
+  const res = await fetch(url, {
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      // Ask PostgREST to give us all rows without pagination (default cap is
+      // 1000; we have <300 test users so this is safe).
+      Prefer: 'count=exact',
+      Range: '0-9999',
+    },
+  })
+  if (!res.ok) {
+    console.error(`profiles fetch failed: ${res.status} ${await res.text()}`)
+    return []
   }
-  return allUsers.filter((u: any) => u.email?.endsWith(TEST_DOMAIN))
+  const rows = (await res.json()) as Array<{ id: string; email: string; username: string }>
+  // Shape into the same structure phaseData expects from auth admin.listUsers.
+  return rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    user_metadata: { username: r.username },
+  }))
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -301,24 +411,51 @@ async function phaseData(supabase: any) {
       ]
 
       for (const def of assessmentDefs) {
+        // Make Quiz 1 a LIVE online quiz so the anti-cheat (proctoring) flow
+        // is demoable. All other assessments stay as before (offline, pre-graded).
+        const isLiveQuiz = def.title === 'Quiz 1'
+        const now = Date.now()
+        const scheduleStart = isLiveQuiz ? new Date(now + QUIZ_LIVE_START_OFFSET_MS).toISOString() : null
+        const scheduleEnd = isLiveQuiz ? new Date(now + QUIZ_LIVE_END_OFFSET_MS).toISOString() : null
+
         const { data: assessment, error: aErr } = await supabase.from('assessments').insert({
           teacher_id: teacherId,
           course_code: course.code, course_name: course.name,
           assessment_type: def.type, title: def.title, total_marks: def.marks,
-          is_online_quiz: false, is_marks_finalized: def.type === 'midterm',
+          is_online_quiz: isLiveQuiz,
+          schedule_start: scheduleStart,
+          schedule_end: scheduleEnd,
+          is_marks_finalized: def.type === 'midterm',
         }).select('id').single()
 
         if (aErr || !assessment) { console.error(`Assessment err ${course.code} ${def.title}:`, aErr?.message); continue }
         totalAssessments++
 
-        // Marks
-        const markRows = students.map(s => ({
-          assessment_id: assessment.id, student_id: s.id,
-          student_name: s.name, student_roll_number: s.roll,
-          marks_obtained: randomScore(def.marks), remarks: null,
-        }))
-        await batchInsert(supabase, 'student_marks', markRows, 100)
-        totalMarks += markRows.length
+        if (isLiveQuiz) {
+          // Live online quiz: no pre-filled marks (students take it during demo).
+          // Insert 5 randomized MCQs from the question bank, dept-aware.
+          const marksPerQuestion = Math.max(1, Math.floor(def.marks / 5))
+          const picks = pickQuizQuestions(course.dept, marksPerQuestion)
+          const questionRows = picks.map((q, i) => ({
+            assessment_id: assessment.id,
+            question_text: q.question_text,
+            option_a: q.option_a, option_b: q.option_b,
+            option_c: q.option_c, option_d: q.option_d,
+            correct_option: q.correct_option,
+            marks: q.marks,
+            question_order: i + 1,
+          }))
+          await batchInsert(supabase, 'quiz_questions', questionRows, 50)
+        } else {
+          // Offline assessment: pre-fill marks as historical record.
+          const markRows = students.map(s => ({
+            assessment_id: assessment.id, student_id: s.id,
+            student_name: s.name, student_roll_number: s.roll,
+            marks_obtained: randomScore(def.marks), remarks: null,
+          }))
+          await batchInsert(supabase, 'student_marks', markRows, 100)
+          totalMarks += markRows.length
+        }
       }
 
       // Attendance (20 sessions)
@@ -388,6 +525,7 @@ Deno.serve(async (req) => {
       teachers: `teacher1${TEST_DOMAIN} through teacher10${TEST_DOMAIN}`,
       students: `fa22bcs001${TEST_DOMAIN}, sp23bcs001${TEST_DOMAIN}, etc.`,
       password: TEST_PASSWORD,
+      live_quiz_demo: 'Sign in as any student → "Quizzes" tab. "Quiz 1" for every enrolled course is now a LIVE online quiz (active for 7 days from seed time) with 5 MCQs and webcam-based anti-cheat proctoring.',
     }
 
     console.log('Seed complete!', JSON.stringify(result))

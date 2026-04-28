@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { gsap } from 'gsap';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -95,17 +96,41 @@ export function StudyGuideDisplay({ studyGuide, onRegenerate }: StudyGuideDispla
       <CardContent>
         <div className="prose prose-sm dark:prose-invert max-w-none">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
-              h1: ({ children }) => <h1 className="text-3xl font-bold text-primary mb-4">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-2xl font-semibold text-foreground mb-3 mt-6">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-xl font-semibold text-foreground mb-2 mt-4">{children}</h3>,
-              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-4">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-4">{children}</ol>,
-              li: ({ children }) => <li className="text-muted-foreground">{children}</li>,
-              p: ({ children }) => <p className="mb-4 text-foreground">{children}</p>,
+              h1: ({ children }) => <h1 className="text-3xl font-bold text-primary mb-4 pb-2 border-b border-border/60">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-xl font-semibold text-foreground mb-3 mt-6 tracking-tight">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-base font-semibold text-foreground mb-2 mt-4 uppercase tracking-wide text-muted-foreground">{children}</h3>,
+              ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5 mb-4 marker:text-muted-foreground">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5 mb-4 marker:text-muted-foreground">{children}</ol>,
+              li: ({ children }) => <li className="text-foreground/90 leading-relaxed">{children}</li>,
+              p: ({ children }) => <p className="mb-4 text-foreground leading-relaxed">{children}</p>,
               strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+              em: ({ children }) => <em className="italic">{children}</em>,
               code: ({ children }) => (
                 <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+              ),
+              hr: () => <hr className="my-6 border-border/60" />,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-primary/40 pl-4 py-1 my-4 italic text-muted-foreground">
+                  {children}
+                </blockquote>
+              ),
+              table: ({ children }) => (
+                <div className="my-4 overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full text-sm border-collapse">{children}</table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-muted/50 border-b border-border/60">{children}</thead>
+              ),
+              tbody: ({ children }) => <tbody className="divide-y divide-border/40">{children}</tbody>,
+              tr: ({ children }) => <tr>{children}</tr>,
+              th: ({ children }) => (
+                <th className="text-left font-semibold px-4 py-2.5 text-foreground">{children}</th>
+              ),
+              td: ({ children }) => (
+                <td className="px-4 py-2.5 align-top text-foreground/90">{children}</td>
               ),
             }}
           >

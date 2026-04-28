@@ -1,4 +1,6 @@
-import { StudentProfile, Semester } from "@/data/sampleStudentData";
+import { StudentProfile, Semester } from "@/lib/academicTypes";
+
+export type { StudentProfile, Semester } from "@/lib/academicTypes";
 
 export interface GPATrend {
   trend: "improving" | "declining" | "stable";

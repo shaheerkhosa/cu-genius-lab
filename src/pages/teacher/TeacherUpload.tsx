@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { QuizBuilder } from "@/components/QuizBuilder";
+import { QuizAttemptsTable } from "@/components/QuizAttemptsTable";
 import { supabase } from '@/integrations/supabase/client';
 import { useTeacherCourses } from '@/hooks/useTeacherCourses';
 import { toast } from 'sonner';
@@ -49,6 +50,8 @@ interface StudentMark {
   marks_obtained: number | null;
   remarks: string | null;
   submission_file_path: string | null;
+  submitted_at: string | null;
+  is_late: boolean;
   student_id: string | null;
 }
 
@@ -812,11 +815,23 @@ const TeacherUpload = () => {
                   {a.assessment_type === 'assignment' && (
                     <TableCell>
                       {mark.submission_file_path ? (
-                        <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" asChild>
-                          <a href={getFileUrl(mark.submission_file_path)} target="_blank" rel="noopener noreferrer">
-                            <Eye className="w-3 h-3" /> View
-                          </a>
-                        </Button>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" asChild>
+                            <a href={getFileUrl(mark.submission_file_path)} target="_blank" rel="noopener noreferrer">
+                              <Eye className="w-3 h-3" /> View
+                            </a>
+                          </Button>
+                          {mark.is_late && (
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                              late
+                            </Badge>
+                          )}
+                          {mark.submitted_at && (
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {new Date(mark.submitted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
                       ) : mark.remarks?.includes('Hard copy') ? (
                         <Badge variant="secondary" className="text-xs">Hard Copy</Badge>
                       ) : (
@@ -1019,10 +1034,13 @@ const TeacherUpload = () => {
                                   />
                                 )}
                                 {!a.is_online_quiz && renderMarksTable(a)}
-                                {a.is_online_quiz && a.assessment_type === 'quiz' && getScheduleStatus(a) === 'ended' && (
+                                {a.is_online_quiz && a.assessment_type === 'quiz' && (
                                   <div className="pt-4 border-t border-border/50">
-                                    <h4 className="font-semibold text-sm mb-2">Student Results (auto-graded)</h4>
-                                    <p className="text-xs text-muted-foreground mb-3">Online quiz results are automatically calculated from student responses.</p>
+                                    <QuizAttemptsTable
+                                      assessmentId={a.id}
+                                      courseCode={a.course_code}
+                                      totalMarks={a.total_marks}
+                                    />
                                   </div>
                                 )}
                                 {a.is_online_quiz && a.assessment_type === 'assignment' && (

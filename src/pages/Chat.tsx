@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ChatLanding } from "@/components/ChatLanding";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useConversations } from "@/hooks/useConversations";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -136,50 +137,40 @@ const Chat = () => {
       await addMessage(convId, "user", messageContent);
       setInput("");
 
-      // Call the edge function with summary + last 2 messages
+      // Call the edge function with summary + last 2 messages.
+      // Use the SDK's functions.invoke() so the signed-in user's JWT is
+      // attached automatically — the function gateway has verify_jwt=true
+      // and the publishable key is no longer a valid JWT format.
       const allMessages = [...messages, { role: "user", content: messageContent }];
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            messages: allMessages.slice(-2), // Only send last 2 messages
-            summary: currentSummary, // Include rolling summary for context
-          }),
-        }
-      );
+      const { data, error: invokeError } = await supabase.functions.invoke("chat-ollama", {
+        body: {
+          messages: allMessages.slice(-2), // Only send last 2 messages
+          summary: currentSummary, // Include rolling summary for context
+        },
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get response from the AI service");
+      if (invokeError) {
+        throw new Error(invokeError.message || "Failed to get response from the AI service");
+      }
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
-
-      if (data.message?.content) {
+      if (data?.message?.content) {
         await addMessage(convId, "assistant", data.message.content, data.message.citations);
-        
+
         // Generate summary every 4 messages (in background)
         if (shouldGenerateSummary()) {
           console.log("Generating rolling summary...");
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ollama`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              messages: allMessages.slice(-6), // Summarize last 6 messages
-              generateSummary: true,
-            }),
-          })
-            .then((res) => res.json())
-            .then((summaryData) => {
-              if (summaryData.summary) {
+          supabase.functions
+            .invoke("chat-ollama", {
+              body: {
+                messages: allMessages.slice(-6), // Summarize last 6 messages
+                generateSummary: true,
+              },
+            })
+            .then(({ data: summaryData }) => {
+              if (summaryData?.summary) {
                 updateSummary(convId, summaryData.summary);
                 console.log("Summary updated:", summaryData.summary);
               }
@@ -274,6 +265,7 @@ const Chat = () => {
                         {message.role === "assistant" ? (
                           <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0">
                             <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
                               components={{
                                 p: ({ children }) => <p className="leading-relaxed">{children}</p>,
                                 strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
@@ -290,6 +282,30 @@ const Chat = () => {
                                   <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
                                     {children}
                                   </a>
+                                ),
+                                table: ({ children }) => (
+                                  <div className="my-3 overflow-x-auto rounded-lg border border-border/60 bg-background/40">
+                                    <table className="w-full text-xs border-collapse">{children}</table>
+                                  </div>
+                                ),
+                                thead: ({ children }) => (
+                                  <thead className="bg-background/60 border-b border-border/60">{children}</thead>
+                                ),
+                                tbody: ({ children }) => <tbody>{children}</tbody>,
+                                tr: ({ children }) => (
+                                  <tr className="border-b border-border/30 last:border-b-0">{children}</tr>
+                                ),
+                                th: ({ children }) => (
+                                  <th className="text-left font-semibold px-3 py-2 whitespace-nowrap">{children}</th>
+                                ),
+                                td: ({ children }) => (
+                                  <td className="px-3 py-2 align-top">{children}</td>
+                                ),
+                                hr: () => <hr className="my-3 border-border/40" />,
+                                blockquote: ({ children }) => (
+                                  <blockquote className="border-l-2 border-primary/40 pl-3 italic text-muted-foreground my-2">
+                                    {children}
+                                  </blockquote>
                                 ),
                               }}
                             >

@@ -1,4 +1,6 @@
-import { StudentProfile, Course } from '@/data/sampleStudentData';
+import { StudentProfile, Course } from '@/lib/academicTypes';
+
+export type { StudentProfile, Course } from '@/lib/academicTypes';
 
 export interface CLOScore {
   cloNumber: number;

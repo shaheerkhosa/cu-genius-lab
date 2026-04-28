@@ -149,57 +149,135 @@ struct AIChatView: View {
 }
 
 /// Renders a markdown string with inline formatting (bold, italic, code,
-/// links) plus paragraph and bullet-list line breaks. Foundation's
-/// `AttributedString(markdown:)` only handles inline syntax inside a single
-/// paragraph, so we split on blank lines and bullet markers ourselves and
-/// render each block as its own Text view.
+/// links) plus paragraph, bullet-list, and GitHub-flavored table support.
+/// Foundation's `AttributedString(markdown:)` only handles inline syntax
+/// inside a single paragraph, so we split on blank lines, bullet markers,
+/// and table fences ourselves and render each block as its own view.
 private struct MarkdownText: View {
     let raw: String
 
     init(_ raw: String) { self.raw = raw }
 
+    private enum Block {
+        case text(String)              // paragraph or list item (inline-rendered)
+        case table(header: [String], rows: [[String]])
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-                // Note: the base font here MUST NOT pin a weight (no
-                // weight: .regular). When the font modifier specifies a
-                // weight, SwiftUI clobbers the bold runs that AttributedString
-                // emits for markdown's `**...**`, leaving raw asterisks
-                // visible. Letting weight stay unset preserves them.
-                Text(parseInline(block))
-                    .font(.system(size: 15))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                switch block {
+                case .text(let body):
+                    // Note: the base font here MUST NOT pin a weight (no
+                    // weight: .regular). When the font modifier specifies a
+                    // weight, SwiftUI clobbers the bold runs that AttributedString
+                    // emits for markdown's `**...**`, leaving raw asterisks
+                    // visible. Letting weight stay unset preserves them.
+                    Text(parseInline(body))
+                        .font(.system(size: 15))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .table(let header, let rows):
+                    MarkdownTable(header: header, rows: rows, parseInline: parseInline)
+                }
             }
         }
     }
 
-    /// Render units: blank-line-separated paragraphs collapse onto one line,
-    /// list-item lines starting with "- " or "* " stand on their own.
-    private var blocks: [String] {
-        var result: [String] = []
-        var buffer: [String] = []
+    /// Split the raw markdown into renderable blocks.
+    /// - blank-line-separated paragraphs collapse onto one line,
+    /// - list-item lines starting with "- " or "* " stand on their own,
+    /// - consecutive lines that start with "|" become a table (the
+    ///   `|---|---|` separator row is detected and used as the boundary
+    ///   between header and body rows).
+    private var blocks: [Block] {
+        var result: [Block] = []
+        var paragraphBuf: [String] = []
+        var tableBuf: [String] = []
 
-        func flush() {
-            if !buffer.isEmpty {
-                result.append(buffer.joined(separator: " "))
-                buffer.removeAll()
+        func flushParagraph() {
+            if !paragraphBuf.isEmpty {
+                result.append(.text(paragraphBuf.joined(separator: " ")))
+                paragraphBuf.removeAll()
             }
+        }
+
+        func flushTable() {
+            guard !tableBuf.isEmpty else { return }
+            if let parsed = parseTable(tableBuf) {
+                result.append(.table(header: parsed.header, rows: parsed.rows))
+            } else {
+                // Couldn't parse as a table — fall back to plain text so we
+                // never lose content.
+                for line in tableBuf {
+                    result.append(.text(line))
+                }
+            }
+            tableBuf.removeAll()
         }
 
         for line in raw.components(separatedBy: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let isTableLine = trimmed.hasPrefix("|") && trimmed.hasSuffix("|") && trimmed.count > 1
+
+            if isTableLine {
+                flushParagraph()
+                tableBuf.append(trimmed)
+                continue
+            } else if !tableBuf.isEmpty {
+                flushTable()
+            }
+
             if trimmed.isEmpty {
-                flush()
+                flushParagraph()
             } else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
-                flush()
-                result.append(trimmed)
+                flushParagraph()
+                result.append(.text(trimmed))
             } else {
-                buffer.append(trimmed)
+                paragraphBuf.append(trimmed)
             }
         }
-        flush()
+        flushParagraph()
+        flushTable()
         return result
+    }
+
+    /// Parse a list of `|cell|cell|` lines into header + rows.
+    /// Returns nil if the structure isn't a valid table.
+    private func parseTable(_ lines: [String]) -> (header: [String], rows: [[String]])? {
+        guard lines.count >= 2 else { return nil }
+
+        func splitRow(_ line: String) -> [String] {
+            var s = line
+            if s.hasPrefix("|") { s.removeFirst() }
+            if s.hasSuffix("|") { s.removeLast() }
+            return s.components(separatedBy: "|").map {
+                $0.trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        // The separator row must be all dashes / colons / pipes / spaces.
+        let separatorAllowed = CharacterSet(charactersIn: "-: |")
+        var separatorIdx: Int? = nil
+        for (i, line) in lines.enumerated() {
+            if line.unicodeScalars.allSatisfy({ separatorAllowed.contains($0) }) &&
+               line.contains("-") {
+                separatorIdx = i
+                break
+            }
+        }
+        guard let sep = separatorIdx, sep > 0 else { return nil }
+
+        let header = splitRow(lines[sep - 1])
+        let rows = lines.suffix(from: sep + 1).map { splitRow($0) }
+        // Pad or trim each row to match header column count.
+        let cols = header.count
+        let normalized = rows.map { row -> [String] in
+            if row.count == cols { return row }
+            if row.count > cols { return Array(row.prefix(cols)) }
+            return row + Array(repeating: "", count: cols - row.count)
+        }
+        return (header, normalized)
     }
 
     private func parseInline(_ text: String) -> AttributedString {
@@ -210,5 +288,56 @@ private struct MarkdownText: View {
             return attr
         }
         return AttributedString(text)
+    }
+}
+
+/// Lightweight table renderer for markdown chat output. Uses a horizontal
+/// ScrollView so wide tables stay readable on narrow phones, and a Grid so
+/// columns line up across header + body rows.
+private struct MarkdownTable: View {
+    let header: [String]
+    let rows: [[String]]
+    let parseInline: (String) -> AttributedString
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header row
+                HStack(alignment: .top, spacing: 0) {
+                    ForEach(Array(header.enumerated()), id: \.offset) { _, cell in
+                        Text(parseInline(cell))
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(minWidth: 80, alignment: .leading)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                    }
+                }
+                .background(Color(.tertiarySystemBackground))
+
+                Divider()
+
+                // Body rows
+                ForEach(Array(rows.enumerated()), id: \.offset) { rowIdx, row in
+                    HStack(alignment: .top, spacing: 0) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
+                            Text(parseInline(cell))
+                                .font(.system(size: 13))
+                                .frame(minWidth: 80, alignment: .leading)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                        }
+                    }
+                    if rowIdx < rows.count - 1 {
+                        Divider()
+                    }
+                }
+            }
+            .background(Color(.systemBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color(.separator), lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 }
