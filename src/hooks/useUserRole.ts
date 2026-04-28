@@ -12,11 +12,14 @@ export function useUserRole() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchUserRole() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
+          if (cancelled) return;
           setRole(null);
           setIsAdmin(false);
           setIsTeacher(false);
@@ -34,29 +37,49 @@ export function useUserRole() {
           .select('role')
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Error fetching user role:', error);
-          setRole('user');
-          setIsAdmin(false);
-          setIsTeacher(false);
-        } else {
-          const roles = (data ?? []).map((r) => r.role as UserRole);
-          const top = PRIORITY.find((p) => roles.includes(p)) ?? 'user';
-          setRole(top);
-          setIsAdmin(top === 'admin');
-          setIsTeacher(top === 'teacher');
+        // Fall back to the portal_type stored in user_metadata when the
+        // user_roles query is empty or fails (RLS, missing seed row, etc.).
+        // This ensures admins/teachers never get silently demoted to 'user'
+        // and stranded on the student portal.
+        const fallback = (user.user_metadata?.portal_type as string | undefined);
+        const roles: UserRole[] = (data ?? []).map((r) => r.role as UserRole);
+        if (roles.length === 0 && (fallback === 'admin' || fallback === 'teacher')) {
+          roles.push(fallback as UserRole);
         }
+
+        if (error) {
+          console.warn('useUserRole: user_roles query error, using metadata fallback', error);
+        }
+
+        if (cancelled) return;
+        const top = PRIORITY.find((p) => roles.includes(p)) ?? 'user';
+        setRole(top);
+        setIsAdmin(top === 'admin');
+        setIsTeacher(top === 'teacher');
       } catch (err) {
         console.error('Error in fetchUserRole:', err);
+        if (cancelled) return;
         setRole('user');
         setIsAdmin(false);
         setIsTeacher(false);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchUserRole();
+
+    // Re-fetch when the auth state changes (sign-in / sign-out / token
+    // refresh) so a session that started without a role row picks up the
+    // role as soon as it's seeded, without a full page reload.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchUserRole();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { role, isAdmin, isTeacher, loading };

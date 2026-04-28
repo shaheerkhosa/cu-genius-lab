@@ -45,15 +45,20 @@ const Auth = () => {
     // role)), so fetch them all and pick the highest-privilege one. The
     // admin portal is intentionally hidden — entering admin creds in the
     // Student or Teacher tab still redirects them here.
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', session.user.id);
 
+    if (error) {
+      console.warn('Auth: user_roles lookup failed, falling back to metadata', error);
+    }
+
     const roles = (data ?? []).map((r) => r.role as string);
     const fallback = (session.user.user_metadata?.portal_type as string | undefined);
+    console.debug('Auth.resolveRedirect', { userId: session.user.id, roles, fallback });
 
-    if (roles.includes('admin')) {
+    if (roles.includes('admin') || fallback === 'admin') {
       navigate("/admin");
     } else if (roles.includes('teacher') || fallback === 'teacher') {
       navigate("/teacher");

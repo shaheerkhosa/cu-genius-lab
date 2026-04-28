@@ -5,10 +5,22 @@ import { DecorativeBackground } from "@/components/DecorativeBackground";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, PenTool, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Index = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const { isAdmin, isTeacher, loading: roleLoading } = useUserRole();
+
+  // Defensive: the Index route is the student landing page. If an admin
+  // or teacher somehow ends up here (e.g. their role was added after the
+  // browser session was issued, or Auth.tsx's redirect was beaten by a
+  // stale getSession() result), bounce them to their actual portal.
+  useEffect(() => {
+    if (roleLoading) return;
+    if (isAdmin) navigate("/admin", { replace: true });
+    else if (isTeacher) navigate("/teacher", { replace: true });
+  }, [isAdmin, isTeacher, roleLoading, navigate]);
   
   const headerRef = useRef<HTMLDivElement>(null);
   const promptsRef = useRef<HTMLDivElement>(null);
